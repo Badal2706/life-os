@@ -1,4 +1,4 @@
-# Setup guide — free cross-device sync
+# Life OS — setup guide (free cross-device sync)
 
 Total cost: $0. You need a Google account (your Gmail works).
 

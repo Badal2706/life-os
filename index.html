@@ -2,211 +2,719 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-<meta name="theme-color" content="#6C5CE7">
-<title>Routine & Goals</title>
+<meta name="theme-color" content="#2a1454">
+<title>Life OS</title>
 <link rel="manifest" href="manifest.json">
-<link rel="icon" href="icons/icon-192.png">
-<link rel="apple-touch-icon" href="icons/icon-192.png">
+<link rel="icon" type="image/png" sizes="48x48" href="icons/favicon.png">
+<link rel="icon" type="image/png" sizes="32x32" href="icons/favicon-32.png">
+<link rel="apple-touch-icon" href="icons/apple-icon.png">
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
 <style>
   :root{
-    --bg:#0f1020; --card:#1a1b32; --card2:#20213e; --accent:#6C5CE7; --accent2:#00d1a0;
-    --text:#f1f1f8; --muted:#9a9bc0; --danger:#ff6b6b; --radius:16px;
+    --text:#ffffff; --muted:rgba(255,255,255,.62); --accent:#9db8ff; --accent2:#4ef0c2;
+    --danger:#ff8585; --money:#ffd27a; --earn:#7cf0a5;
+    --glass:rgba(255,255,255,.14); --glass2:rgba(255,255,255,.20);
+    --stroke:rgba(255,255,255,.28); --radius:20px;
   }
-  *{box-sizing:border-box; -webkit-tap-highlight-color:transparent;}
-  html,body{margin:0;padding:0;height:100%;background:var(--bg);color:var(--text);
-    font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;overscroll-behavior:none;}
-  #app{max-width:480px;margin:0 auto;padding:16px 16px 90px;min-height:100vh;}
-  h1{font-size:22px;margin:8px 0 2px;}
-  .sub{color:var(--muted);font-size:13px;margin-bottom:18px;}
-  .card{background:var(--card);border-radius:var(--radius);padding:14px;margin-bottom:12px;}
+  *{box-sizing:border-box;-webkit-tap-highlight-color:transparent;}
+  /* IMPORTANT: body must stay transparent — a solid body background paints
+     OVER the fixed negative-z layers (gradient, bubbles, wallpaper). */
+  html{background:#2a1454;}
+  body{margin:0;padding:0;min-height:100%;color:var(--text);
+    font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;
+    background:transparent;overscroll-behavior:none;}
+  html.light-root{background:#e9dcff;}
+  /* base gradient — purple/pink like the reference */
+  body::before{content:'';position:fixed;inset:0;z-index:-4;transition:opacity .5s;
+    background:linear-gradient(150deg,#42207c 0%,#5b2a96 30%,#8f37a0 65%,#c94d9d 100%);}
+  body.light{color:#26284a;}
+  body.light::before{background:linear-gradient(150deg,#e9dcff 0%,#e3d0ff 35%,#ffd9ef 70%,#ffe4f3 100%);}
+  /* custom wallpaper layer */
+  #wallLayer{position:fixed;inset:0;z-index:-3;background-size:cover;background-position:center;display:none;}
+  body.has-wall #wallLayer{display:block;}
+  body.has-wall::after{content:'';position:fixed;inset:0;z-index:-2;pointer-events:none;
+    background:linear-gradient(180deg, rgba(10,8,25,.4), rgba(10,8,25,.55));}
+  body.light.has-wall::after{background:linear-gradient(180deg, rgba(255,255,255,.35), rgba(255,255,255,.5));}
+  body.has-wall #bgFx{display:none;}
+  /* floating glass bubbles — pink & blue spheres like the reference */
+  #bgFx{position:fixed;inset:0;z-index:-2;overflow:hidden;pointer-events:none;}
+  .bub{position:absolute;border-radius:50%;opacity:.85;
+    animation:floaty ease-in-out infinite alternate;}
+  .bub:nth-child(1){width:160px;height:160px;left:4%;top:10%;animation-duration:9s;
+    background:radial-gradient(circle at 32% 28%, rgba(255,255,255,.75), rgba(255,94,200,.65) 42%, rgba(255,94,200,.15) 78%, transparent);}
+  .bub:nth-child(2){width:75px;height:75px;left:78%;top:7%;animation-duration:7s;animation-delay:-2s;
+    background:radial-gradient(circle at 32% 28%, rgba(255,255,255,.8), rgba(84,168,255,.65) 42%, rgba(84,168,255,.15) 78%, transparent);}
+  .bub:nth-child(3){width:240px;height:240px;left:62%;top:55%;animation-duration:12s;animation-delay:-4s;filter:blur(3px);
+    background:radial-gradient(circle at 32% 28%, rgba(255,255,255,.6), rgba(186,104,255,.55) 45%, rgba(186,104,255,.12) 78%, transparent);}
+  .bub:nth-child(4){width:52px;height:52px;left:28%;top:42%;animation-duration:6s;animation-delay:-1s;
+    background:radial-gradient(circle at 32% 28%, rgba(255,255,255,.85), rgba(255,120,190,.7) 42%, rgba(255,120,190,.15) 78%, transparent);}
+  .bub:nth-child(5){width:120px;height:120px;left:8%;top:70%;animation-duration:10s;animation-delay:-6s;filter:blur(1px);
+    background:radial-gradient(circle at 32% 28%, rgba(255,255,255,.7), rgba(96,140,255,.6) 42%, rgba(96,140,255,.14) 78%, transparent);}
+  .bub:nth-child(6){width:64px;height:64px;left:46%;top:14%;animation-duration:8s;animation-delay:-3s;filter:blur(1px);
+    background:radial-gradient(circle at 32% 28%, rgba(255,255,255,.8), rgba(255,94,200,.6) 42%, rgba(255,94,200,.14) 78%, transparent);}
+  .bub:nth-child(7){width:95px;height:95px;left:84%;top:32%;animation-duration:11s;animation-delay:-5s;
+    background:radial-gradient(circle at 32% 28%, rgba(255,255,255,.75), rgba(120,110,255,.6) 42%, rgba(120,110,255,.14) 78%, transparent);}
+  @keyframes floaty{
+    0%{transform:translate(0,0) scale(1);}
+    50%{transform:translate(-28px,-44px) scale(1.07);}
+    100%{transform:translate(26px,-82px) scale(.96);}
+  }
+  /* light mode component overrides */
+  body.light{--muted:rgba(40,42,80,.62);--stroke:rgba(255,255,255,.8);
+    --glass:rgba(255,255,255,.45);--glass2:rgba(255,255,255,.6);}
+  body.light .glass{background:linear-gradient(120deg, rgba(255,255,255,.7), rgba(255,255,255,.42) 60%, rgba(255,255,255,.55));
+    box-shadow:0 10px 30px rgba(120,80,200,.18), inset 0 1px 0 rgba(255,255,255,.9);}
+  body.light h1{text-shadow:none;}
+  body.light .topbar,body.light .tabbar{background:rgba(255,255,255,.5);border-color:rgba(255,255,255,.8);}
+  body.light .topbar .brand{color:#4a2ba0;text-shadow:none;}
+  body.light .topbar button,body.light .datebar button,body.light .month-nav button{color:#3c2f80;}
+  body.light .tab{color:rgba(50,45,100,.55);}
+  body.light .tab.active{color:#4a2ba0;background:rgba(255,255,255,.8);border-color:#fff;}
+  body.light input,body.light textarea,body.light select{background:rgba(255,255,255,.65);color:#26284a;}
+  body.light input::placeholder,body.light textarea::placeholder{color:rgba(50,50,90,.4);}
+  body.light select option{background:#fff;color:#26284a;}
+  body.light button{background:#6c3fd8;color:#fff;}
+  body.light button.ghost{background:rgba(255,255,255,.6);color:#5a35c0;}
+  body.light button.danger{background:transparent;color:#e0447a;}
+  body.light .checkbox{border-color:#8a6ae0;}
+  body.light .checkbox.done{background:#27c795;border-color:#27c795;color:#fff;}
+  body.light .tile .t-num.green,body.light .pct-label{color:#0da678;}
+  body.light .tile .t-num.gold,body.light .day-total .amt,body.light .expense-amt,body.light .reward-cost{color:#d88a00;}
+  body.light .tile .t-num.earn,body.light .expense-amt.earn,body.light .day-total .amt.earn{color:#0da65a;}
+  body.light .tile .t-num.purple{color:#5a35c0;}
+  body.light .streak-badge{color:#c47500;background:rgba(255,180,60,.18);}
+  body.light .block-head{color:#4a2ba0;background:rgba(120,80,220,.12);}
+  body.light .kind-badge{color:#4a2ba0;background:rgba(120,80,220,.1);border-color:rgba(120,80,220,.25);}
+  body.light .progress-bar{background:rgba(110,80,200,.15);}
+  body.light .progress-fill{background:linear-gradient(90deg,#27c795,#0da678);}
+  body.light .ring .bgc{stroke:rgba(110,80,200,.2);}
+  body.light .ring .fgc{stroke:#0da678;}
+  body.light .modal{background:rgba(255,255,255,.75);border-color:#fff;}
+  body.light .sync-choice button{color:#26284a;}
+  body.light .link-btn{color:#5a35c0;}
+  body.light .daycard.side .sd{color:#5a35c0;}
+  body.light .drag-handle{color:rgba(60,50,120,.45);}
+  body.light .checkitem,body.light .expense-row,body.light .reward-row{border-color:rgba(110,80,200,.15);}
+  body.light .cell{background:rgba(110,80,200,.16);}
+  body.light .cell.off{background:rgba(110,80,200,.05);}
+  body.light .cell.on{background:#27c795;}
+  body.light .modal-bg{background:rgba(90,70,160,.25);}
+  body.light .sync-key-display{background:rgba(255,255,255,.7);color:#4a2ba0;}
+  /* validation */
+  .input-error{outline:2px solid var(--danger) !important;animation:shake .3s;}
+  .err-msg{color:var(--danger);font-size:11px;margin-top:4px;font-weight:600;}
+  @keyframes shake{0%,100%{transform:translateX(0);}25%{transform:translateX(-5px);}75%{transform:translateX(5px);}}
+
+  #app{max-width:560px;margin:0 auto;padding:64px 14px 92px;min-height:100vh;}
+  h1{font-size:clamp(19px,5vw,23px);margin:6px 0 2px;text-shadow:0 1px 8px rgba(0,0,0,.2);}
+  .sub{color:var(--muted);font-size:13px;margin-bottom:14px;}
+
+  /* frosted glass like the reference: milky, bright, soft */
+  .glass{position:relative;background:linear-gradient(120deg, rgba(255,255,255,.22), rgba(255,255,255,.10) 60%, rgba(255,255,255,.16));
+    border:1px solid var(--stroke);border-radius:var(--radius);
+    backdrop-filter:blur(22px) saturate(1.4);-webkit-backdrop-filter:blur(22px) saturate(1.4);
+    box-shadow:0 10px 34px rgba(0,30,90,.28), inset 0 1px 0 rgba(255,255,255,.35);overflow:hidden;}
+  .glass::after{content:'';position:absolute;top:-40%;left:-25%;width:65%;height:90%;pointer-events:none;
+    background:linear-gradient(115deg, rgba(255,255,255,.22), rgba(255,255,255,0) 62%);
+    border-radius:50%;transform:rotate(-8deg);}
+  .card{padding:14px;margin-bottom:12px;}
   .row{display:flex;align-items:center;gap:10px;}
   .between{justify-content:space-between;}
-  .tabbar{position:fixed;bottom:0;left:0;right:0;background:var(--card2);
-    display:flex;justify-content:space-around;padding:8px 4px calc(8px + env(safe-area-inset-bottom));
-    max-width:480px;margin:0 auto;box-shadow:0 -2px 12px rgba(0,0,0,.3);}
-  .tab{flex:1;text-align:center;padding:8px 4px;border-radius:12px;color:var(--muted);
-    font-size:11px;cursor:pointer;user-select:none;}
-  .tab.active{color:var(--accent2);background:rgba(0,209,160,.12);}
-  .tab .ic{font-size:20px;display:block;margin-bottom:2px;}
+
+  .topbar{position:fixed;top:0;left:0;right:0;z-index:45;max-width:560px;margin:0 auto;
+    display:flex;align-items:center;gap:8px;padding:10px 12px 8px;
+    background:rgba(255,255,255,.10);backdrop-filter:blur(24px) saturate(1.4);-webkit-backdrop-filter:blur(24px) saturate(1.4);
+    border-bottom:1px solid rgba(255,255,255,.18);}
+  .topbar .brand{font-weight:800;font-size:15px;letter-spacing:.3px;color:#fff;white-space:nowrap;
+    text-shadow:0 1px 6px rgba(0,0,0,.25);}
+  .topbar .status{flex:1;font-size:10.5px;color:var(--muted);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+  .topbar button{border:1px solid var(--stroke);background:var(--glass);color:#fff;
+    border-radius:14px;padding:7px 10px;font-size:12px;font-weight:600;cursor:pointer;
+    backdrop-filter:blur(8px);}
+  .topbar button.today-jump{color:#dffff4;}
+
+  .tabbar{position:fixed;bottom:0;left:0;right:0;z-index:45;max-width:560px;margin:0 auto;
+    display:flex;justify-content:space-around;gap:2px;
+    padding:8px 6px calc(8px + env(safe-area-inset-bottom));
+    background:rgba(255,255,255,.10);backdrop-filter:blur(24px) saturate(1.4);-webkit-backdrop-filter:blur(24px) saturate(1.4);
+    border-top:1px solid rgba(255,255,255,.18);}
+  .tab{flex:1;text-align:center;padding:7px 2px;border-radius:14px;color:rgba(255,255,255,.65);
+    font-size:9.5px;cursor:pointer;user-select:none;min-width:0;}
+  .tab.active{color:#fff;background:rgba(255,255,255,.22);border:1px solid rgba(255,255,255,.3);}
+  .tab .ic{font-size:17px;display:block;margin-bottom:1px;}
+
   .view{display:none;}
-  .view.active{display:block;animation:fade .2s ease;}
-  @keyframes fade{from{opacity:0;transform:translateY(4px);}to{opacity:1;transform:translateY(0);}}
-  input,textarea,select{background:var(--card2);border:1px solid #33345a;color:var(--text);
-    border-radius:10px;padding:10px 12px;font-size:15px;width:100%;}
-  input:focus,textarea:focus{outline:2px solid var(--accent);}
-  button{border:none;border-radius:12px;padding:10px 14px;font-size:14px;font-weight:600;
-    cursor:pointer;background:var(--accent);color:white;}
-  button.ghost{background:transparent;color:var(--accent2);padding:6px 8px;font-weight:500;}
+  .view.active{display:block;animation:fade .22s ease;}
+  @keyframes fade{from{opacity:0;transform:translateY(5px);}to{opacity:1;transform:translateY(0);}}
+
+  input,textarea,select{background:rgba(255,255,255,.16);border:1px solid var(--stroke);color:#fff;
+    border-radius:13px;padding:10px 12px;font-size:15px;width:100%;backdrop-filter:blur(8px);}
+  input::placeholder,textarea::placeholder{color:rgba(255,255,255,.45);}
+  input:focus,select:focus,textarea:focus{outline:2px solid rgba(255,255,255,.5);}
+  select option{background:#1c3f7d;color:#fff;}
+  button{border:none;border-radius:14px;padding:10px 14px;font-size:14px;font-weight:600;
+    cursor:pointer;background:rgba(255,255,255,.85);color:#0a4ab8;}
+  button.ghost{background:var(--glass);border:1px solid var(--stroke);color:#eafff7;font-weight:500;backdrop-filter:blur(8px);}
   button.danger{background:transparent;color:var(--danger);padding:6px;font-weight:500;font-size:13px;}
-  button.small{padding:6px 10px;font-size:13px;}
-  .fab-row{display:flex;gap:8px;margin-bottom:14px;}
-  .checkitem{display:flex;align-items:center;gap:12px;padding:10px 4px;border-bottom:1px solid #292a4a;}
+  button.small{padding:6px 10px;font-size:12.5px;}
+  .fab-row{display:flex;gap:8px;margin-bottom:12px;}
+  .fab-row button{flex:1;}
+
+  /* bento */
+  .bento{display:grid;grid-template-columns:repeat(2,1fr);gap:10px;margin-bottom:12px;}
+  .tile{padding:14px;cursor:pointer;transition:transform .15s;}
+  .tile:active{transform:scale(.97);}
+  .tile.wide{grid-column:span 2;}
+  .tile .t-label{font-size:10.5px;color:var(--muted);text-transform:uppercase;letter-spacing:.5px;}
+  .tile .t-num{font-size:clamp(19px,5.6vw,25px);font-weight:800;margin-top:4px;}
+  .tile .t-sub{font-size:11.5px;color:var(--muted);margin-top:3px;}
+  .tile .t-num.green{color:var(--accent2);} .tile .t-num.gold{color:var(--money);}
+  .tile .t-num.earn{color:var(--earn);} .tile .t-num.purple{color:#cdd9ff;}
+  .ringwrap{display:flex;align-items:center;gap:14px;}
+  .ring{width:64px;height:64px;flex-shrink:0;}
+  .ring circle{fill:none;stroke-width:7;}
+  .ring .bgc{stroke:rgba(255,255,255,.25);}
+  .ring .fgc{stroke:var(--accent2);stroke-linecap:round;transition:stroke-dashoffset .4s;}
+
+  /* date bar + carousel */
+  .datebar{display:flex;align-items:center;gap:8px;margin-bottom:10px;}
+  .datebar button{background:var(--glass);border:1px solid var(--stroke);color:#fff;padding:8px 13px;font-size:16px;backdrop-filter:blur(8px);}
+  .datebar .dlabel{flex:1;text-align:center;font-size:13.5px;font-weight:700;}
+  .datebar .dlabel .tag{display:block;font-size:10.5px;color:var(--accent2);font-weight:600;}
+  .carousel{position:relative;overflow:hidden;margin:0 -4px;padding:4px;}
+  .track{display:flex;gap:10px;align-items:flex-start;will-change:transform;}
+  .daycard{padding:12px;min-width:0;}
+  .daycard.side{flex:0 0 17%;cursor:pointer;filter:blur(1.8px);opacity:.55;transform:scale(.88);
+    transform-origin:center top;font-size:10px;max-height:320px;overflow:hidden;
+    transition:opacity .25s, filter .25s;}
+  .daycard.side:active{opacity:.85;filter:blur(.5px);}
+  .daycard.side .sd{font-size:10.5px;font-weight:700;margin-bottom:6px;text-align:center;color:#dfe9ff;}
+  .daycard.side .si{padding:4px 0;border-bottom:1px solid rgba(255,255,255,.12);
+    white-space:nowrap;overflow:hidden;text-overflow:ellipsis;color:var(--muted);}
+  .daycard.side .si.done{text-decoration:line-through;opacity:.6;}
+  .daycard.main{flex:1;transform-origin:center top;will-change:transform;}
+
+  .checkitem{display:flex;align-items:center;gap:8px;padding:10px 2px;border-bottom:1px solid rgba(255,255,255,.14);}
   .checkitem:last-child{border-bottom:none;}
-  .checkbox{width:26px;height:26px;border-radius:8px;border:2px solid var(--accent);flex-shrink:0;
-    display:flex;align-items:center;justify-content:center;font-size:15px;}
-  .checkbox.done{background:var(--accent2);border-color:var(--accent2);color:#0f1020;}
-  .item-name{flex:1;font-size:15px;}
+  .blocklist [data-id], #taskListInner [data-id], #goalList [data-id]{transition:transform .2s ease;}
+  .dragging{transition:none !important;position:relative;z-index:20;
+    background:rgba(255,255,255,.22) !important;border-radius:14px;
+    box-shadow:0 14px 34px rgba(0,0,0,.4), 0 3px 10px rgba(0,0,0,.3) !important;
+    backdrop-filter:blur(10px);}
+  body.light .dragging{background:rgba(255,255,255,.95) !important;
+    box-shadow:0 14px 34px rgba(100,70,180,.3), 0 3px 10px rgba(100,70,180,.2) !important;}
+  .checkbox{width:25px;height:25px;border-radius:9px;border:2px solid rgba(255,255,255,.65);flex-shrink:0;
+    display:flex;align-items:center;justify-content:center;font-size:14px;cursor:pointer;}
+  .checkbox.done{background:var(--accent2);border-color:var(--accent2);color:#054030;}
+  .item-name{flex:1;font-size:14px;min-width:0;word-break:break-word;}
   .item-name.done{text-decoration:line-through;color:var(--muted);}
-  .streak-badge{font-size:11px;color:#ffb454;background:rgba(255,180,84,.12);padding:3px 8px;border-radius:20px;white-space:nowrap;}
-  .goal-title{font-weight:600;font-size:15px;}
-  .goal-meta{font-size:12px;color:var(--muted);margin-top:2px;}
-  .progress-bar{height:8px;background:#292a4a;border-radius:6px;overflow:hidden;margin-top:8px;}
-  .progress-fill{height:100%;background:linear-gradient(90deg,var(--accent),var(--accent2));border-radius:6px;transition:width .3s;}
-  .milestone{display:flex;align-items:center;gap:8px;padding:6px 0;font-size:13px;}
-  .milestone .checkbox{width:20px;height:20px;font-size:12px;}
-  .empty{color:var(--muted);text-align:center;padding:30px 10px;font-size:14px;}
-  .modal-bg{position:fixed;inset:0;background:rgba(0,0,0,.55);display:none;align-items:flex-end;justify-content:center;z-index:50;}
+  .item-time{font-size:10px;color:var(--muted);}
+  .streak-badge{font-size:10.5px;color:var(--money);background:rgba(255,210,122,.16);padding:3px 7px;border-radius:20px;white-space:nowrap;}
+  .drag-handle{color:rgba(255,255,255,.5);font-size:15px;padding:6px 6px;cursor:grab;flex-shrink:0;
+    touch-action:none;user-select:none;line-height:1;}
+  .drag-handle:active{cursor:grabbing;color:#fff;}
+  .empty{color:var(--muted);text-align:center;padding:24px 10px;font-size:13.5px;}
+  .block-head{font-size:10.5px;font-weight:700;letter-spacing:.5px;color:#dfe9ff;
+    background:rgba(255,255,255,.12);border-radius:8px;padding:4px 9px;display:inline-block;margin:10px 0 2px;}
+  .blocklist{margin-bottom:2px;}
+
+  /* goals */
+  .seg{display:flex;gap:8px;margin-bottom:14px;}
+  .seg button{flex:1;background:var(--glass);border:1px solid var(--stroke);color:var(--muted);font-weight:600;backdrop-filter:blur(8px);}
+  .seg button.active{background:rgba(255,255,255,.85);color:#0a4ab8;border-color:transparent;}
+  .goal-title{font-weight:700;font-size:15px;word-break:break-word;}
+  .goal-meta{font-size:11.5px;color:var(--muted);margin-top:2px;}
+  .progress-bar{height:9px;background:rgba(255,255,255,.18);border-radius:6px;overflow:hidden;margin-top:10px;}
+  .progress-fill{height:100%;background:linear-gradient(90deg,#8ff5d4,#4ef0c2);border-radius:6px;transition:width .35s;}
+  .pct-label{font-size:12px;font-weight:700;color:var(--accent2);}
+  .goal-log{margin-top:8px;font-size:11px;color:var(--muted);}
+  .goal-log .le{padding:3px 0;border-bottom:1px dashed rgba(255,255,255,.12);}
+  .goal-log .le:last-child{border-bottom:none;}
+  .kind-badge{font-size:10px;padding:3px 8px;border-radius:20px;background:rgba(255,255,255,.16);
+    color:#dfe9ff;white-space:nowrap;border:1px solid rgba(255,255,255,.24);}
+
+  /* money */
+  .expense-row{display:flex;align-items:center;gap:10px;padding:10px 2px;border-bottom:1px solid rgba(255,255,255,.14);}
+  .expense-row:last-child{border-bottom:none;}
+  .expense-place{flex:1;min-width:0;}
+  .expense-place .p{font-size:14px;font-weight:600;word-break:break-word;}
+  .expense-place .n{font-size:11.5px;color:var(--muted);}
+  .expense-amt{font-size:14.5px;font-weight:700;color:var(--money);white-space:nowrap;}
+  .expense-amt.earn{color:var(--earn);}
+  .day-total{display:flex;justify-content:space-between;align-items:center;padding:2px 4px 10px;}
+  .day-total .amt{font-size:19px;font-weight:800;color:var(--money);}
+  .day-total .amt.earn{color:var(--earn);}
+  .field{margin-bottom:11px;}
+  .field label{font-size:11.5px;color:var(--muted);display:block;margin-bottom:5px;}
+  .field-row{display:flex;gap:10px;}
+  .field-row .field{flex:1;min-width:0;}
+
+  /* month grid */
+  .grid-wrap{overflow-x:auto;-webkit-overflow-scrolling:touch;}
+  .month-nav{display:flex;align-items:center;gap:8px;margin-bottom:8px;}
+  .month-nav button{background:var(--glass);border:1px solid var(--stroke);color:#fff;padding:5px 11px;font-size:14px;}
+  .month-nav .m-label{flex:1;text-align:center;font-size:13px;font-weight:700;}
+  table.grid{border-collapse:collapse;width:max-content;font-size:10.5px;}
+  table.grid th,table.grid td{padding:2.5px;text-align:center;}
+  table.grid th{color:var(--muted);font-weight:500;}
+  table.grid td.name{text-align:left;padding-right:8px;max-width:96px;overflow:hidden;
+    text-overflow:ellipsis;white-space:nowrap;font-size:11.5px;}
+  .cell{width:15px;height:15px;border-radius:4px;background:rgba(255,255,255,.16);margin:auto;}
+  .cell.on{background:var(--accent2);}
+  .cell.off{background:rgba(255,255,255,.05);}
+  .top-places .r{display:flex;justify-content:space-between;font-size:13px;padding:5px 0;border-bottom:1px solid rgba(255,255,255,.14);}
+  .top-places .r:last-child{border-bottom:none;}
+
+  /* rewards */
+  .reward-row{padding:10px 2px;border-bottom:1px solid rgba(255,255,255,.14);}
+  .reward-row:last-child{border-bottom:none;}
+  .reward-cost{font-size:12px;font-weight:700;color:var(--money);white-space:nowrap;}
+  .pts-legend{font-size:10.5px;color:var(--muted);margin-top:6px;line-height:1.5;}
+
+  /* modals */
+  .modal-bg{position:fixed;inset:0;background:rgba(4,20,60,.5);backdrop-filter:blur(6px);
+    display:none;align-items:flex-end;justify-content:center;z-index:60;}
   .modal-bg.open{display:flex;}
-  .modal{background:var(--card2);width:100%;max-width:480px;border-radius:20px 20px 0 0;
-    padding:20px;padding-bottom:calc(20px + env(safe-area-inset-bottom));}
+  .modal{background:rgba(255,255,255,.16);backdrop-filter:blur(30px) saturate(1.5);-webkit-backdrop-filter:blur(30px) saturate(1.5);
+    border:1px solid rgba(255,255,255,.3);border-bottom:none;width:100%;max-width:560px;
+    border-radius:24px 24px 0 0;padding:20px;padding-bottom:calc(20px + env(safe-area-inset-bottom));
+    max-height:88vh;overflow-y:auto;box-shadow:0 -10px 40px rgba(0,20,80,.3);}
   .modal h3{margin-top:0;}
-  .field{margin-bottom:12px;}
-  .field label{font-size:12px;color:var(--muted);display:block;margin-bottom:5px;}
-  .modal-actions{display:flex;gap:10px;margin-top:6px;}
+  .modal-actions{display:flex;gap:10px;margin-top:8px;}
   .modal-actions button{flex:1;}
-  .stat-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;}
-  .stat-card{background:var(--card);border-radius:14px;padding:16px;text-align:center;}
-  .stat-num{font-size:26px;font-weight:700;color:var(--accent2);}
-  .stat-label{font-size:12px;color:var(--muted);margin-top:4px;}
-  .heat{display:grid;grid-template-columns:repeat(7,1fr);gap:4px;margin-top:8px;}
-  .heat div{aspect-ratio:1;border-radius:4px;background:#292a4a;}
-  .heat div.on{background:var(--accent2);}
-  .section-label{font-size:12px;text-transform:uppercase;letter-spacing:.5px;color:var(--muted);margin:18px 0 8px;}
-  .milestone-add{display:flex;gap:6px;margin-top:8px;}
-  .milestone-add input{flex:1;}
-  .type-toggle{display:flex;gap:8px;margin-bottom:14px;}
-  .type-toggle button{flex:1;background:var(--card2);color:var(--muted);}
-  .type-toggle button.active{background:var(--accent);color:white;}
+  .sync-key-display{background:rgba(255,255,255,.18);border:1px solid var(--stroke);border-radius:13px;
+    padding:14px;text-align:center;font-family:monospace;font-size:15px;letter-spacing:1px;
+    word-break:break-all;margin-bottom:10px;}
+  .sync-choice{display:flex;flex-direction:column;gap:10px;margin-bottom:8px;}
+  .sync-choice button{background:var(--glass);border:1px solid var(--stroke);color:#fff;
+    text-align:left;font-weight:500;padding:14px;backdrop-filter:blur(8px);}
+  .sync-choice button .t{display:block;font-weight:700;margin-bottom:2px;}
+  .sync-choice button .d{display:block;font-size:12px;color:var(--muted);font-weight:400;}
+  .link-btn{background:none;border:none;color:#dffff4;font-size:13px;padding:6px 0;text-decoration:underline;cursor:pointer;}
+  .kind-pick{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:12px;}
+  .kind-pick button{background:var(--glass);border:1px solid var(--stroke);color:var(--muted);
+    padding:12px 8px;font-size:12.5px;font-weight:600;backdrop-filter:blur(8px);}
+  .kind-pick button.active{border-color:#fff;color:#fff;background:rgba(255,255,255,.28);}
+  .day-chips{display:flex;gap:6px;margin-bottom:12px;flex-wrap:wrap;}
+  .day-chips button{flex:1;min-width:34px;padding:9px 0;font-size:12px;background:var(--glass);
+    border:1px solid var(--stroke);color:var(--muted);font-weight:700;}
+  .day-chips button.active{background:rgba(255,255,255,.85);color:#0a4ab8;border-color:transparent;}
+  .section-label{font-size:11.5px;text-transform:uppercase;letter-spacing:.6px;color:rgba(255,255,255,.7);margin:16px 0 8px;}
+  .hint{font-size:11px;color:var(--muted);margin:-4px 0 10px;}
+
+  /* ---------- lock screen ---------- */
+  #lockScreen{position:fixed;inset:0;z-index:100;display:none;flex-direction:column;
+    align-items:center;justify-content:center;gap:18px;
+    background:linear-gradient(150deg,#42207c 0%,#5b2a96 40%,#8f37a0 80%);}
+  #lockScreen.open{display:flex;}
+  #lockScreen .lock-logo{width:76px;height:76px;border-radius:20px;}
+  #lockScreen .lock-title{font-size:17px;font-weight:800;color:#fff;}
+  .pin-dots{display:flex;gap:14px;height:18px;}
+  .pin-dots span{width:14px;height:14px;border-radius:50%;border:2px solid rgba(255,255,255,.6);}
+  .pin-dots span.fill{background:#fff;border-color:#fff;}
+  .pin-dots.err span{border-color:var(--danger);animation:shake .3s;}
+  .keypad{display:grid;grid-template-columns:repeat(3,72px);gap:12px;}
+  .keypad button{height:64px;border-radius:50%;font-size:22px;font-weight:600;
+    background:rgba(255,255,255,.14);border:1px solid rgba(255,255,255,.25);color:#fff;
+    backdrop-filter:blur(10px);}
+  .keypad button:active{background:rgba(255,255,255,.3);}
+  .keypad button.fn{font-size:14px;background:transparent;border:none;}
+  #bioBtn{background:rgba(255,255,255,.14);border:1px solid rgba(255,255,255,.3);color:#fff;
+    border-radius:16px;padding:10px 18px;font-size:14px;}
+  .toast{position:fixed;bottom:90px;left:50%;transform:translateX(-50%);z-index:90;
+    background:rgba(20,10,50,.9);color:#fff;font-size:13px;padding:10px 18px;border-radius:14px;
+    border:1px solid rgba(255,255,255,.25);backdrop-filter:blur(10px);opacity:0;transition:opacity .3s;pointer-events:none;}
+  .toast.show{opacity:1;}
+  @media (max-width:420px){
+    #app{padding:58px 10px 90px;}
+    .daycard.side{flex-basis:14%;}
+    .bento{gap:8px;}
+    .tile{padding:12px;}
+  }
 </style>
 </head>
 <body>
+
+<div id="lockScreen">
+  <img class="lock-logo" src="icons/icon-192.png" alt="Life OS">
+  <div class="lock-title" id="lockTitle">Enter your PIN</div>
+  <div class="pin-dots" id="pinDots"></div>
+  <div class="keypad">
+    <button onclick="pinPress('1')">1</button><button onclick="pinPress('2')">2</button><button onclick="pinPress('3')">3</button>
+    <button onclick="pinPress('4')">4</button><button onclick="pinPress('5')">5</button><button onclick="pinPress('6')">6</button>
+    <button onclick="pinPress('7')">7</button><button onclick="pinPress('8')">8</button><button onclick="pinPress('9')">9</button>
+    <button class="fn"></button><button onclick="pinPress('0')">0</button><button class="fn" onclick="pinBackspace()">⌫</button>
+  </div>
+  <button id="bioBtn" style="display:none;" onclick="tryBiometric()">🔓 Unlock with fingerprint</button>
+</div>
+<div class="toast" id="toast"></div>
+
+<div id="wallLayer"></div>
+<div id="bgFx">
+  <span class="bub"></span><span class="bub"></span><span class="bub"></span>
+  <span class="bub"></span><span class="bub"></span><span class="bub"></span>
+  <span class="bub"></span>
+</div>
+
+<div class="topbar">
+  <span class="brand">Life OS</span>
+  <span class="status" id="syncStatus">Connecting…</span>
+  <button class="today-jump" onclick="goToToday()">◉ Today</button>
+  <button onclick="openProfileModal()" title="Profile & settings">👤</button>
+</div>
+
 <div id="app">
 
-  <div id="syncStatus" style="position:fixed;top:10px;left:10px;z-index:40;font-size:11px;
-    color:var(--muted);background:var(--card2);padding:5px 10px;border-radius:20px;">Connecting…</div>
-  <button onclick="openSyncModal()" style="position:fixed;top:8px;right:14px;z-index:40;font-size:12px;
-    padding:8px 12px;background:var(--card2);color:var(--muted);">⚙ Sync</button>
+  <!-- HOME -->
+  <div id="view-home" class="view active">
+    <h1 id="homeGreeting">Home</h1>
+    <div class="sub" id="homeDateLine"></div>
+    <div class="bento" id="bentoGrid"></div>
 
-  <div id="view-today" class="view active">
-    <h1>Today</h1>
-    <div class="sub" id="todayDate"></div>
-    <div class="fab-row">
-      <button onclick="openRoutineModal()">+ Add routine item</button>
+    <div class="section-label">🎁 Rewards</div>
+    <div class="glass card" id="rewardsCard"></div>
+
+    <div class="section-label">Routine grid</div>
+    <div class="glass card">
+      <div class="month-nav">
+        <button onclick="shiftMonth(-1)">‹</button>
+        <div class="m-label" id="monthGridLabel"></div>
+        <button onclick="shiftMonth(1)">›</button>
+      </div>
+      <div class="grid-wrap"><div id="monthGrid"></div></div>
     </div>
-    <div class="card" id="routineList"></div>
+
+    <div class="section-label">💸 Money report</div>
+    <div class="glass card">
+      <div class="month-nav">
+        <button onclick="shiftMoneyMonth(-1)">‹</button>
+        <div class="m-label" id="moneyReportLabel"></div>
+        <button onclick="shiftMoneyMonth(1)">›</button>
+      </div>
+      <div class="row between" style="margin-bottom:4px;">
+        <span class="goal-meta">Total spent</span>
+        <span id="monthTotalAmt" style="font-size:16px;font-weight:800;color:var(--money);">₹0</span>
+      </div>
+      <div class="row between">
+        <span class="goal-meta">Total earned</span>
+        <span id="monthEarnedAmt" style="font-size:16px;font-weight:800;color:var(--earn);">₹0</span>
+      </div>
+      <div class="section-label" style="margin-top:12px;">Top spending places</div>
+      <div class="top-places" id="topPlaces"></div>
+      <div class="section-label" style="margin-top:12px;">Earning sources</div>
+      <div class="top-places" id="topSources"></div>
+    </div>
   </div>
 
+  <!-- ROUTINE -->
+  <div id="view-routine" class="view">
+    <h1>Routine</h1>
+    <div class="sub">Habits by time of day — set which weekdays each one runs</div>
+    <div class="datebar">
+      <button onclick="shiftDate(-1)">‹</button>
+      <div class="dlabel"><div id="routineDateLabel"></div><span class="tag" id="routineTodayTag"></span></div>
+      <button onclick="shiftDate(1)">›</button>
+    </div>
+    <div class="fab-row"><button onclick="openRoutineModal()">+ Add routine item</button></div>
+    <div class="carousel"><div class="track" id="routineTrack"></div></div>
+  </div>
+
+  <!-- TASKS -->
+  <div id="view-tasks" class="view">
+    <h1>Tasks</h1>
+    <div class="sub">One-off tasks for a specific day</div>
+    <div class="datebar">
+      <button onclick="shiftDate(-1)">‹</button>
+      <div class="dlabel"><div id="tasksDateLabel"></div><span class="tag" id="tasksTodayTag"></span></div>
+      <button onclick="shiftDate(1)">›</button>
+    </div>
+    <div class="fab-row"><button onclick="openTaskModal()">+ Add task</button></div>
+    <div class="carousel"><div class="track" id="tasksTrack"></div></div>
+  </div>
+
+  <!-- GOALS -->
   <div id="view-goals" class="view">
     <h1>Goals</h1>
-    <div class="sub">Short-term & long-term, all in one place</div>
-    <div class="fab-row">
-      <button onclick="openGoalModal()">+ Add goal</button>
+    <div class="sub">Trackable targets — progress updates as you log</div>
+    <div class="seg">
+      <button id="segShort" class="active" onclick="setGoalPage('short')">Short-term</button>
+      <button id="segLong" onclick="setGoalPage('long')">Long-term</button>
     </div>
-    <div class="section-label">Short-term</div>
-    <div id="shortGoalList"></div>
-    <div class="section-label">Long-term</div>
-    <div id="longGoalList"></div>
+    <div class="fab-row"><button onclick="openGoalModal()">+ Add goal</button></div>
+    <div id="goalList"></div>
   </div>
 
-  <div id="view-stats" class="view">
-    <h1>Stats</h1>
-    <div class="sub">Your consistency at a glance</div>
-    <div class="stat-grid" id="statGrid"></div>
-    <div class="section-label">Routine streaks</div>
-    <div id="streakList"></div>
+  <!-- MONEY -->
+  <div id="view-money" class="view">
+    <h1>Money</h1>
+    <div class="sub">Day-wise spending & earnings</div>
+    <div class="seg">
+      <button id="segSpend" class="active" onclick="setMoneyPage('spend')">Spending</button>
+      <button id="segEarn" onclick="setMoneyPage('earn')">Earnings</button>
+    </div>
+    <div class="datebar">
+      <button onclick="shiftDate(-1)">‹</button>
+      <div class="dlabel"><div id="moneyDateLabel"></div><span class="tag" id="moneyTodayTag"></span></div>
+      <button onclick="shiftDate(1)">›</button>
+    </div>
+
+    <div id="moneySpendPage">
+      <div class="glass card">
+        <div class="field-row">
+          <div class="field"><label>Amount</label>
+            <input id="expenseAmountInput" type="number" inputmode="decimal" placeholder="0"></div>
+          <div class="field" style="flex:1.5;"><label>Spent where</label>
+            <input id="expensePlaceInput" list="placesList" placeholder="e.g. Groceries">
+            <datalist id="placesList"></datalist></div>
+        </div>
+        <div class="field"><label>Note (optional)</label>
+          <input id="expenseNoteInput" placeholder="e.g. weekly vegetables"></div>
+        <button style="width:100%;" onclick="addExpense()">+ Add expense</button>
+      </div>
+      <div class="day-total"><span class="goal-meta">Total spent this day</span>
+        <span class="amt" id="dayTotalAmt">₹0</span></div>
+      <div class="glass card" id="expenseList"></div>
+    </div>
+
+    <div id="moneyEarnPage" style="display:none;">
+      <div class="glass card">
+        <div class="field-row">
+          <div class="field"><label>Amount</label>
+            <input id="earnAmountInput" type="number" inputmode="decimal" placeholder="0"></div>
+          <div class="field" style="flex:1.5;"><label>Source</label>
+            <input id="earnSourceInput" list="sourcesList" placeholder="e.g. Salary, Freelance">
+            <datalist id="sourcesList"></datalist></div>
+        </div>
+        <div class="field"><label>Note (optional)</label>
+          <input id="earnNoteInput" placeholder="e.g. July payout"></div>
+        <button style="width:100%;" onclick="addEarning()">+ Add earning</button>
+      </div>
+      <div class="day-total"><span class="goal-meta">Total earned this month</span>
+        <span class="amt earn" id="dayEarnAmt">₹0</span></div>
+      <div class="glass card" id="earnList"></div>
+    </div>
+  </div>
+
+  <!-- DIARY -->
+  <div id="view-diary" class="view">
+    <h1>Diary</h1>
+    <div class="sub">Write how your day went — your personal life log</div>
+    <div class="datebar">
+      <button onclick="shiftDate(-1)">‹</button>
+      <div class="dlabel"><div id="diaryDateLabel"></div><span class="tag" id="diaryTodayTag"></span></div>
+      <button onclick="shiftDate(1)">›</button>
+    </div>
+    <div class="glass card">
+      <textarea id="diaryTextInput" rows="8" placeholder="How was this day? What happened, what did you feel, what did you learn…"
+        style="resize:vertical;min-height:140px;font-family:inherit;line-height:1.5;"></textarea>
+      <div class="row between" style="margin-top:10px;">
+        <span class="goal-meta" id="diarySavedAt"></span>
+        <button class="small" id="diarySaveBtn" onclick="saveDiaryEntry()">Save entry</button>
+      </div>
+    </div>
+    <div class="section-label">Recent entries</div>
+    <div id="diaryRecentList"></div>
   </div>
 
 </div>
 
 <div class="tabbar">
-  <div class="tab active" data-view="today" onclick="switchView('today')"><span class="ic">✓</span>Today</div>
+  <div class="tab active" data-view="home" onclick="switchView('home')"><span class="ic">🏠</span>Home</div>
+  <div class="tab" data-view="routine" onclick="switchView('routine')"><span class="ic">✅</span>Routine</div>
+  <div class="tab" data-view="tasks" onclick="switchView('tasks')"><span class="ic">📝</span>Tasks</div>
   <div class="tab" data-view="goals" onclick="switchView('goals')"><span class="ic">🎯</span>Goals</div>
-  <div class="tab" data-view="stats" onclick="switchView('stats')"><span class="ic">📊</span>Stats</div>
+  <div class="tab" data-view="money" onclick="switchView('money')"><span class="ic">💰</span>Money</div>
+  <div class="tab" data-view="diary" onclick="switchView('diary')"><span class="ic">📔</span>Diary</div>
 </div>
 
-<!-- Routine modal -->
-<div class="modal-bg" id="routineModalBg">
-  <div class="modal">
-    <h3>New routine item</h3>
-    <div class="field">
-      <label>Name</label>
-      <input id="routineNameInput" placeholder="e.g. Morning workout" maxlength="60">
-    </div>
-    <div class="modal-actions">
-      <button class="ghost" onclick="closeModal('routineModalBg')" style="background:var(--card);">Cancel</button>
-      <button onclick="saveRoutine()">Save</button>
-    </div>
+<!-- Routine add/edit modal -->
+<div class="modal-bg" id="routineModalBg"><div class="modal">
+  <h3 id="routineModalTitle">New routine item</h3>
+  <div class="field"><label>Name</label>
+    <input id="routineNameInput" placeholder="e.g. Morning workout / Creatine" maxlength="60"></div>
+  <div class="field"><label>Time of day</label>
+    <select id="routineBlockInput">
+      <option value="0">🌙 12 – 3 AM</option>
+      <option value="1">🌙 3 – 6 AM</option>
+      <option value="2" selected>🌅 6 – 9 AM</option>
+      <option value="3">☀️ 9 AM – 12 PM</option>
+      <option value="4">☀️ 12 – 3 PM</option>
+      <option value="5">🌤 3 – 6 PM</option>
+      <option value="6">🌆 6 – 9 PM</option>
+      <option value="7">🌙 9 PM – 12 AM</option>
+    </select></div>
+  <label style="font-size:11.5px;color:var(--muted);display:block;margin-bottom:6px;">Which days? (none selected = every day)</label>
+  <div class="day-chips" id="dayChips">
+    <button data-d="1" onclick="toggleDayChip(1)">Mo</button>
+    <button data-d="2" onclick="toggleDayChip(2)">Tu</button>
+    <button data-d="3" onclick="toggleDayChip(3)">We</button>
+    <button data-d="4" onclick="toggleDayChip(4)">Th</button>
+    <button data-d="5" onclick="toggleDayChip(5)">Fr</button>
+    <button data-d="6" onclick="toggleDayChip(6)">Sa</button>
+    <button data-d="0" onclick="toggleDayChip(0)">Su</button>
   </div>
-</div>
+  <div class="hint">Schedule changes apply from today — past days keep their old record.</div>
+  <div class="modal-actions">
+    <button class="ghost" onclick="closeModal('routineModalBg')">Cancel</button>
+    <button onclick="saveRoutine()" id="routineSaveBtn">Save</button>
+  </div>
+  <button class="link-btn" id="routineEndBtn" style="display:none;color:var(--danger);"
+    onclick="endRoutine()">End this routine from today (past stays)</button>
+</div></div>
+
+<!-- Task modal -->
+<div class="modal-bg" id="taskModalBg"><div class="modal">
+  <h3>New task</h3>
+  <div class="field"><label>Task</label>
+    <input id="taskTextInput" placeholder="e.g. Call the plumber" maxlength="100"></div>
+  <div class="modal-actions">
+    <button class="ghost" onclick="closeModal('taskModalBg')">Cancel</button>
+    <button onclick="saveTask()">Save</button>
+  </div>
+</div></div>
 
 <!-- Goal modal -->
-<div class="modal-bg" id="goalModalBg">
-  <div class="modal">
-    <h3>New goal</h3>
-    <div class="type-toggle">
-      <button id="btnShort" class="active" onclick="setGoalType('short')">Short-term</button>
-      <button id="btnLong" onclick="setGoalType('long')">Long-term</button>
-    </div>
-    <div class="field">
-      <label>Title</label>
-      <input id="goalTitleInput" placeholder="e.g. Finish reading a book" maxlength="80">
-    </div>
-    <div class="field" id="deadlineField">
-      <label>Target date</label>
-      <input id="goalDeadlineInput" type="date">
-    </div>
-    <div class="modal-actions">
-      <button class="ghost" onclick="closeModal('goalModalBg')" style="background:var(--card);">Cancel</button>
-      <button onclick="saveGoal()">Save</button>
-    </div>
+<div class="modal-bg" id="goalModalBg"><div class="modal">
+  <h3>New goal</h3>
+  <div class="field"><label>What do you want to achieve?</label>
+    <input id="goalTitleInput" placeholder="e.g. Read 'Atomic Habits' / Buy a bike" maxlength="80"></div>
+  <label style="font-size:11.5px;color:var(--muted);display:block;margin-bottom:6px;">How will you measure it?</label>
+  <div class="kind-pick">
+    <button id="kindPages" onclick="setGoalKind('pages')">📖 Book pages</button>
+    <button id="kindMoney" onclick="setGoalKind('money')">💰 Money saved</button>
+    <button id="kindCount" onclick="setGoalKind('count')">🔢 Count (km, hrs…)</button>
+    <button id="kindSimple" class="active" onclick="setGoalKind('simple')">⚡ Simple %</button>
   </div>
-</div>
+  <div class="field" id="targetField" style="display:none;">
+    <label id="targetLabel">Target</label>
+    <input id="goalTargetInput" type="number" inputmode="decimal" placeholder="e.g. 320">
+  </div>
+  <div class="field" id="unitField" style="display:none;">
+    <label>Unit name</label>
+    <input id="goalUnitInput" placeholder="e.g. km, hours, sessions" maxlength="20">
+  </div>
+  <div class="field"><label>Deadline (optional)</label>
+    <input id="goalDeadlineInput" type="date"></div>
+  <div class="modal-actions">
+    <button class="ghost" onclick="closeModal('goalModalBg')">Cancel</button>
+    <button onclick="saveGoal()">Save</button>
+  </div>
+</div></div>
 
-<!-- Milestone add modal -->
-<div class="modal-bg" id="milestoneModalBg">
-  <div class="modal">
-    <h3>Add milestone</h3>
-    <div class="field">
-      <label>Milestone</label>
-      <input id="milestoneInput" placeholder="e.g. Read chapters 1-3" maxlength="60">
-    </div>
-    <div class="modal-actions">
-      <button class="ghost" onclick="closeModal('milestoneModalBg')" style="background:var(--card);">Cancel</button>
-      <button onclick="saveMilestone()">Add</button>
-    </div>
+<!-- Progress modal -->
+<div class="modal-bg" id="progressModalBg"><div class="modal">
+  <h3 id="progressModalTitle">Update progress</h3>
+  <p id="progressModalHint" style="color:var(--muted);font-size:13px;margin-top:-6px;"></p>
+  <div class="field"><label id="progressInputLabel">Value</label>
+    <input id="progressValueInput" type="number" inputmode="decimal" placeholder="0"></div>
+  <div class="modal-actions">
+    <button class="ghost" onclick="closeModal('progressModalBg')">Cancel</button>
+    <button onclick="submitProgress()">Save</button>
   </div>
-</div>
+</div></div>
 
-<!-- Sync code modal -->
-<div class="modal-bg" id="syncModalBg">
-  <div class="modal">
-    <h3>Sync across devices</h3>
-    <p style="color:var(--muted);font-size:13px;margin-top:-6px;">
-      Enter the same private code on every device to see the same data. Anyone who knows this code can
-      see and edit your data, so treat it like a password — don't share it.
-    </p>
-    <div class="field">
-      <label>Sync code</label>
-      <input id="syncCodeInput" placeholder="e.g. a private phrase only you know" autocapitalize="off" autocorrect="off">
-    </div>
-    <div class="modal-actions">
-      <button class="ghost" onclick="closeModal('syncModalBg')" style="background:var(--card);">Cancel</button>
-      <button onclick="saveSyncCode()">Connect</button>
-    </div>
+<!-- Reward modal -->
+<div class="modal-bg" id="rewardModalBg"><div class="modal">
+  <h3>New reward</h3>
+  <p style="color:var(--muted);font-size:13px;margin-top:-6px;">
+    Something you'll treat yourself with once you've earned enough points.
+  </p>
+  <div class="field"><label>Reward</label>
+    <input id="rewardTitleInput" placeholder="e.g. Eat out at my favourite place" maxlength="80"></div>
+  <div class="field"><label>Points needed</label>
+    <input id="rewardCostInput" type="number" inputmode="numeric" placeholder="e.g. 300"></div>
+  <div class="hint">Guide: small treat 100–200 · eating out 300–500 · happy purchase 800+</div>
+  <div class="modal-actions">
+    <button class="ghost" onclick="closeModal('rewardModalBg')">Cancel</button>
+    <button onclick="saveReward()">Save</button>
   </div>
-</div>
+</div></div>
+
+<!-- Profile modal -->
+<div class="modal-bg" id="profileModalBg"><div class="modal">
+  <h3>👤 Profile & settings</h3>
+  <div class="field"><label>Your name</label>
+    <input id="profNameInput" placeholder="e.g. Badal" maxlength="50"></div>
+  <div class="field-row">
+    <div class="field"><label>Date of birth</label>
+      <input id="profDobInput" type="date"></div>
+    <div class="field"><label>City</label>
+      <input id="profCityInput" placeholder="e.g. Ahmedabad" maxlength="50"></div>
+  </div>
+  <div class="field"><label>What do you do? (work / study)</label>
+    <input id="profWorkInput" placeholder="e.g. CS student, developer" maxlength="80"></div>
+  <div class="field"><label>About me — anything future-you (or your AI) should know</label>
+    <textarea id="profAboutInput" rows="3" maxlength="500" style="resize:vertical;font-family:inherit;"
+      placeholder="e.g. my long-term dreams, values, health notes…"></textarea></div>
+
+  <div class="section-label">Appearance</div>
+  <div class="seg" id="modePick">
+    <button data-mode="dark" onclick="setMode('dark')">🌙 Dark</button>
+    <button data-mode="light" onclick="setMode('light')">☀️ Light</button>
+  </div>
+  <div class="sync-choice">
+    <button onclick="document.getElementById('wallInput').click()">
+      <span class="t">🖼 Set my own background</span>
+      <span class="d">Upload any photo or wallpaper from your device</span>
+    </button>
+    <button id="wallRemoveBtn" style="display:none;" onclick="removeWallpaper()">
+      <span class="t">✕ Remove background photo</span>
+      <span class="d">Go back to the animated bubble background</span>
+    </button>
+  </div>
+  <input type="file" id="wallInput" accept="image/*" style="display:none;" onchange="uploadWallpaper(event)">
+
+  <div class="section-label">Security (phone only)</div>
+  <div class="sync-choice">
+    <button onclick="startPinSetup()">
+      <span class="t">🔒 <span id="pinBtnLabel">Set app PIN</span></span>
+      <span class="d" id="pinBtnDesc">4 or 6 digits — asked when the app opens on your phone. Laptop opens directly.</span>
+    </button>
+    <button id="bioSetupBtn" style="display:none;" onclick="enableBiometric()">
+      <span class="t">🫆 <span id="bioBtnLabel">Enable fingerprint unlock</span></span>
+      <span class="d">Use your phone's fingerprint/face instead of typing the PIN</span>
+    </button>
+    <button id="pinRemoveBtn" style="display:none;" onclick="removePin()">
+      <span class="t" style="color:var(--danger);">✕ Remove PIN lock</span>
+      <span class="d">App will open without asking anything</span>
+    </button>
+  </div>
+
+  <div class="section-label">Data</div>
+  <div class="sync-choice">
+    <button onclick="closeModal('profileModalBg');openSyncModal()">
+      <span class="t">🔑 Sync settings</span>
+      <span class="d" id="profSyncSummary">Manage your sync key & devices</span>
+    </button>
+    <button onclick="exportAllData()">
+      <span class="t">⬇ Export all data (JSON)</span>
+      <span class="d">Download your full life log — also auto-backs up weekly</span>
+    </button>
+    <button onclick="document.getElementById('importInput').click()">
+      <span class="t">⬆ Import from backup (JSON)</span>
+      <span class="d">Restore everything from an exported/backup file</span>
+    </button>
+  </div>
+  <input type="file" id="importInput" accept="application/json,.json" style="display:none;" onchange="importData(event)">
+
+  <div class="modal-actions">
+    <button class="ghost" onclick="closeModal('profileModalBg')">Close</button>
+    <button onclick="saveProfile()">Save profile</button>
+  </div>
+</div></div>
+
+<!-- Sync modal -->
+<div class="modal-bg" id="syncModalBg"><div class="modal" id="syncModalBody"></div></div>
 
 <script>
 // =========================================================
-// FIREBASE CONFIG — replace with the values from your own
-// Firebase project (Project settings > General > Your apps).
-// See SETUP.md for step-by-step instructions.
+// FIREBASE CONFIG — replace with values from your Firebase
+// project (see SETUP.md).
 // =========================================================
 const firebaseConfig = {
   apiKey: "YOUR_API_KEY",
@@ -217,375 +725,1421 @@ const firebaseConfig = {
   appId: "YOUR_APP_ID"
 };
 
-let db = null;
-let firebaseReady = false;
+let db = null, firebaseReady = false;
 try{
   firebase.initializeApp(firebaseConfig);
   db = firebase.firestore();
   db.enablePersistence({synchronizeTabs:true}).catch(()=>{});
   firebaseReady = true;
-}catch(e){
-  console.warn('Firebase not configured yet:', e.message);
-}
+}catch(e){ console.warn('Firebase not configured yet:', e.message); }
 
-const LOCAL_STORE_KEY = 'routineGoalsAppData_v1';
+const LOCAL_STORE_KEY = 'lifeLogData_v4';
+const OLD_STORE_KEYS = ['lifeLogData_v3','routineGoalsAppData_v2','routineGoalsAppData_v1'];
 const SYNC_CODE_KEY = 'routineGoalsSyncCode_v1';
-let data = { routines: [], goals: [] };
+let data = normalizeData({});
 let unsubscribeSnapshot = null;
 let syncCode = localStorage.getItem(SYNC_CODE_KEY) || '';
+let viewDate = todayStr();
+let currentView = 'home';
+let goalPage = 'short';
+let moneyPage = 'spend';
+let gridMonthOffset = 0;
+let moneyMonthOffset = 0;
 
-// Turn the private sync code into a safe Firestore document id.
+const BLOCK_LABELS = ['🌙 12 – 3 AM','🌙 3 – 6 AM','🌅 6 – 9 AM','☀️ 9 AM – 12 PM',
+  '☀️ 12 – 3 PM','🌤 3 – 6 PM','🌆 6 – 9 PM','🌙 9 PM – 12 AM'];
+const PTS = { routine:10, task:15, diary:20, goal:100 };
+
+// ---------- date helpers (DD/MM/YYYY everywhere) ----------
+function fmtDate(d){
+  return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');
+}
+function todayStr(){ return fmtDate(new Date()); }
+function nowIso(){ return new Date().toISOString(); }
+function uid(){ return Date.now().toString(36)+Math.random().toString(36).slice(2,7); }
+function addDays(dateStr, n){
+  const d = new Date(dateStr+'T00:00:00'); d.setDate(d.getDate()+n); return fmtDate(d);
+}
+function ddmmyyyy(dateStr){
+  const [y,m,d] = dateStr.split('-'); return `${d}/${m}/${y}`;
+}
+function ddmm(dateStr){
+  const [y,m,d] = dateStr.split('-'); return `${d}/${m}`;
+}
+function weekdayName(dateStr, style){
+  return new Date(dateStr+'T00:00:00').toLocaleDateString('en-GB',{weekday: style||'long'});
+}
+function niceDateLabel(dateStr){
+  return weekdayName(dateStr,'long')+' · '+ddmmyyyy(dateStr);
+}
+function shortDateLabel(dateStr){
+  return weekdayName(dateStr,'short')+' '+ddmm(dateStr);
+}
+function fmtDateTime(iso){
+  if(!iso) return '';
+  const d = new Date(iso);
+  return ddmmyyyy(fmtDate(d))+' · '+d.toLocaleTimeString('en-GB',{hour:'numeric',minute:'2-digit'});
+}
+function fmtTime(iso){
+  if(!iso) return '';
+  return new Date(iso).toLocaleTimeString('en-GB',{hour:'numeric',minute:'2-digit'});
+}
+function escapeHtml(s){
+  const d = document.createElement('div'); d.textContent = s; return d.innerHTML;
+}
+function escapeAttr(s){ return String(s).replace(/'/g,"\\'").replace(/"/g,'&quot;'); }
+function rupee(n){ return '₹'+Number(n||0).toLocaleString(); }
+
+// ---------- form validation (highlight + scroll + vibrate) ----------
+function fieldError(inputId, msg){
+  const inp = document.getElementById(inputId);
+  if(!inp) return false;
+  inp.classList.add('input-error');
+  const parent = inp.closest('.field') || inp.parentElement;
+  let m = parent.querySelector('.err-msg');
+  if(!m){ m = document.createElement('div'); m.className = 'err-msg'; parent.appendChild(m); }
+  m.textContent = msg;
+  inp.scrollIntoView({behavior:'smooth', block:'center'});
+  try{ inp.focus({preventScroll:true}); }catch(e){}
+  if(navigator.vibrate) navigator.vibrate([60,40,60]);
+  inp.addEventListener('input', ()=>{
+    inp.classList.remove('input-error');
+    m.remove();
+  }, {once:true});
+  return false;
+}
+function requireText(inputId, msg){
+  const v = document.getElementById(inputId)?.value.trim();
+  if(!v){ fieldError(inputId, msg); return null; }
+  return v;
+}
+function requireNumber(inputId, msg){
+  const v = parseFloat(document.getElementById(inputId)?.value);
+  if(isNaN(v) || v<=0){ fieldError(inputId, msg); return null; }
+  return v;
+}
+
+// ---------- data model / migration ----------
+function normalizeData(d){
+  return {
+    routines: (d.routines || []).map(migrateRoutine),
+    goals: (d.goals || []).map(migrateGoal),
+    tasks: d.tasks || [],
+    expenses: d.expenses || [],
+    earnings: d.earnings || [],
+    diary: d.diary || {},
+    profile: d.profile || {},
+    rewards: d.rewards || []
+  };
+}
+function migrateRoutine(r){
+  return {
+    id: r.id, name: r.name, history: r.history || {},
+    block: (typeof r.block === 'number') ? r.block : 2,
+    skipDates: r.skipDates || {},
+    dayHistory: r.dayHistory || [{from:'2000-01-01', days: []}],
+    startedOn: r.startedOn || (r.createdAt ? r.createdAt.slice(0,10) : '2000-01-01'),
+    endedOn: r.endedOn || null,
+    createdAt: r.createdAt || nowIso()
+  };
+}
+function migrateGoal(g){
+  if(g.kind) return g;
+  let pct = 0;
+  if(g.milestones && g.milestones.length){
+    pct = Math.round(g.milestones.filter(m=>m.done).length / g.milestones.length * 100);
+  }
+  return {
+    id: g.id, title: g.title, term: g.type || g.term || 'short',
+    deadline: g.deadline || '', createdAt: g.created ? g.created+'T00:00:00.000Z' : nowIso(),
+    kind: 'simple', target: 100, unit: '%', current: pct, log: []
+  };
+}
+
+// ---------- routine scheduling (past-preserving) ----------
+function daysFor(r, dateStr){
+  let days = [];
+  for(const entry of r.dayHistory){
+    if(entry.from <= dateStr) days = entry.days;
+    else break;
+  }
+  return days; // [] = every day
+}
+function isScheduled(r, dateStr){
+  if(dateStr < r.startedOn) return false;
+  if(r.endedOn && dateStr >= r.endedOn) return false;
+  if(r.skipDates[dateStr]) return false;
+  const days = daysFor(r, dateStr);
+  if(days.length === 0) return true;
+  return days.includes(new Date(dateStr+'T00:00:00').getDay());
+}
+function activeRoutines(dateStr){
+  return data.routines.filter(r=>isScheduled(r, dateStr));
+}
+// Streak: consecutive scheduled days done, ending at given date.
+// Unscheduled days don't break the chain (gym Mon/Wed/Fri keeps streak over Tue).
+function computeStreak(r, endDate){
+  let streak = 0, d = endDate || todayStr(), guard = 0;
+  if(isScheduled(r,d) && !r.history[d]) d = addDays(d,-1);
+  while(guard++ < 400){
+    if(d < r.startedOn) break;
+    if(!isScheduled(r,d)){ d = addDays(d,-1); continue; }
+    if(r.history[d]){ streak++; d = addDays(d,-1); }
+    else break;
+  }
+  return streak;
+}
+
+// ---------- drag & drop reorder (floating item, siblings slide aside) ----------
+function attachDrag(container, onDrop){
+  if(!container) return;
+  container.querySelectorAll('.drag-handle').forEach(h=>{
+    h.onpointerdown = (e)=>{
+      e.preventDefault();
+      const item = h.closest('[data-id]');
+      if(!item) return;
+      const items = [...container.querySelectorAll('[data-id]')];
+      const startIndex = items.indexOf(item);
+      const itemH = item.getBoundingClientRect().height;
+      const startY = e.clientY;
+      let newIndex = startIndex;
+      item.classList.add('dragging');
+      if(navigator.vibrate) navigator.vibrate(15);
+
+      const move = (ev)=>{
+        const dy = ev.clientY - startY;
+        // dragged item floats with the pointer, slightly enlarged
+        item.style.transform = `translateY(${dy}px) scale(1.03)`;
+        // which slot is it hovering over?
+        newIndex = Math.max(0, Math.min(items.length-1, startIndex + Math.round(dy/itemH)));
+        // siblings smoothly slide out of the way
+        items.forEach((sib,i)=>{
+          if(sib===item) return;
+          let ty = 0;
+          if(startIndex < newIndex && i > startIndex && i <= newIndex) ty = -itemH;
+          else if(newIndex < startIndex && i >= newIndex && i < startIndex) ty = itemH;
+          sib.style.transform = ty ? `translateY(${ty}px)` : '';
+        });
+      };
+      const up = ()=>{
+        document.removeEventListener('pointermove', move);
+        document.removeEventListener('pointerup', up);
+        item.classList.remove('dragging');
+        items.forEach(sib=>{ sib.style.transform=''; });
+        if(newIndex !== startIndex){
+          const ids = items.map(x=>x.dataset.id);
+          ids.splice(newIndex, 0, ids.splice(startIndex,1)[0]);
+          if(navigator.vibrate) navigator.vibrate(20);
+          onDrop(ids);
+        }
+      };
+      document.addEventListener('pointermove', move);
+      document.addEventListener('pointerup', up);
+    };
+  });
+}
+function applySubsetOrder(mainArray, orderedIds){
+  const idxs = [];
+  mainArray.forEach((x,i)=>{ if(orderedIds.includes(x.id)) idxs.push(i); });
+  const items = orderedIds.map(id=>mainArray.find(x=>x.id===id));
+  idxs.forEach((mi,k)=>{ mainArray[mi] = items[k]; });
+}
+
+// ---------- sync ----------
 async function codeToDocId(code){
   const enc = new TextEncoder().encode(code.trim().toLowerCase());
   const hashBuf = await crypto.subtle.digest('SHA-256', enc);
   return Array.from(new Uint8Array(hashBuf)).map(b=>b.toString(16).padStart(2,'0')).join('');
 }
-
+function generateSyncKey(){
+  const words = ['sun','moon','star','leaf','river','stone','cloud','flame','wave','hill',
+    'bird','wolf','tiger','ocean','forest','spark','frost','ember','coral','maple'];
+  const pick = () => words[Math.floor(Math.random()*words.length)];
+  return `${pick()}-${pick()}-${Math.floor(1000+Math.random()*9000)}`;
+}
 function setSyncStatus(text, ok){
   const el = document.getElementById('syncStatus');
   if(!el) return;
   el.textContent = text;
   el.style.color = ok ? 'var(--accent2)' : 'var(--muted)';
 }
-
 async function connectSync(code){
-  if(!firebaseReady || !db){
-    setSyncStatus('Offline mode (no sync configured)', false);
-    loadLocalOnly();
-    return;
-  }
+  if(!firebaseReady || !db){ setSyncStatus('Offline mode', false); loadLocalOnly(); return; }
   if(unsubscribeSnapshot){ unsubscribeSnapshot(); unsubscribeSnapshot = null; }
-  if(!code){
-    setSyncStatus('Not synced — tap ⚙ Sync to connect', false);
-    loadLocalOnly();
-    return;
-  }
+  if(!code){ setSyncStatus('Not synced', false); loadLocalOnly(); return; }
   setSyncStatus('Connecting…', false);
   const docId = await codeToDocId(code);
   const docRef = db.collection('routineGoalsApps').doc(docId);
   unsubscribeSnapshot = docRef.onSnapshot((snap)=>{
-    if(snap.exists){
-      data = snap.data();
-    } else {
-      data = { routines: [], goals: [] };
-      docRef.set(data).catch(()=>{});
-    }
+    if(snap.exists){ data = normalizeData(snap.data()); }
+    else { data = normalizeData({}); docRef.set(data).catch(()=>{}); }
     localStorage.setItem(LOCAL_STORE_KEY, JSON.stringify(data));
     setSyncStatus('Synced ✓', true);
-    renderRoutines();
-    renderGoals();
-    if(document.getElementById('view-stats').classList.contains('active')) renderStats();
+    renderAll();
   }, (err)=>{
     console.warn('sync error', err);
-    setSyncStatus('Sync error — using local copy', false);
+    setSyncStatus('Sync error — local copy', false);
     loadLocalOnly();
   });
 }
-
 function loadLocalOnly(){
   try{
-    const raw = localStorage.getItem(LOCAL_STORE_KEY);
-    data = raw ? JSON.parse(raw) : { routines: [], goals: [] };
-  }catch(e){
-    data = { routines: [], goals: [] };
-  }
-  renderRoutines();
-  renderGoals();
+    let raw = localStorage.getItem(LOCAL_STORE_KEY);
+    if(!raw){ for(const k of OLD_STORE_KEYS){ raw = localStorage.getItem(k); if(raw) break; } }
+    data = raw ? normalizeData(JSON.parse(raw)) : normalizeData({});
+  }catch(e){ data = normalizeData({}); }
+  renderAll();
 }
-
 async function saveData(){
   localStorage.setItem(LOCAL_STORE_KEY, JSON.stringify(data));
   if(firebaseReady && db && syncCode){
     const docId = await codeToDocId(syncCode);
-    db.collection('routineGoalsApps').doc(docId).set(data).catch((e)=>{
-      console.warn('save failed', e);
-    });
+    db.collection('routineGoalsApps').doc(docId).set(data).catch(e=>console.warn('save failed', e));
   }
 }
 
-function openSyncModal(){
-  document.getElementById('syncCodeInput').value = syncCode;
-  openModal('syncModalBg');
+// ---------- sync modal ----------
+function openSyncModal(){ renderSyncModal('menu'); openModal('syncModalBg'); }
+function renderSyncModal(mode){
+  const body = document.getElementById('syncModalBody');
+  if(mode==='menu'){
+    body.innerHTML = syncCode ? `
+      <h3>Sync</h3>
+      <p style="color:var(--muted);font-size:13px;margin-top:-6px;">Connected with this key:</p>
+      <div class="sync-key-display">${escapeHtml(syncCode)}</div>
+      <div class="modal-actions">
+        <button class="ghost" onclick="copyText('${escapeAttr(syncCode)}')">Copy key</button>
+        <button onclick="closeModal('syncModalBg')">Done</button>
+      </div>
+      <button class="link-btn" onclick="renderSyncModal('enter')">Switch to a different key</button>
+    ` : `
+      <h3>Sync your data</h3>
+      <p style="color:var(--muted);font-size:13px;margin-top:-6px;">
+        Connect this device to your data. Already set up on another device? Enter that
+        key. First time? Create a new one.
+      </p>
+      <div class="sync-choice">
+        <button onclick="renderSyncModal('enter')">
+          <span class="t">I have a sync key</span>
+          <span class="d">Enter the key from another device to see the same data</span>
+        </button>
+        <button onclick="renderSyncModal('create')">
+          <span class="t">Create a new sync key</span>
+          <span class="d">Starts a brand-new account with a fresh private key</span>
+        </button>
+      </div>
+      <button class="ghost" style="width:100%;" onclick="closeModal('syncModalBg')">Not now (this device only)</button>
+    `;
+  } else if(mode==='enter'){
+    body.innerHTML = `
+      <h3>Enter your sync key</h3>
+      <p style="color:var(--muted);font-size:13px;margin-top:-6px;">
+        Type the exact key from your other device. Keep it private.
+      </p>
+      <div class="field"><label>Sync key</label>
+        <input id="syncCodeInput" placeholder="e.g. sun-river-4821" autocapitalize="off" autocorrect="off"></div>
+      <div class="modal-actions">
+        <button class="ghost" onclick="renderSyncModal('menu')">Back</button>
+        <button onclick="submitSyncCode()">Connect</button>
+      </div>
+    `;
+  } else if(mode==='create'){
+    const newKey = generateSyncKey();
+    body.innerHTML = `
+      <h3>Your new sync key</h3>
+      <p style="color:var(--muted);font-size:13px;margin-top:-6px;">
+        Save this somewhere safe — you'll type it on other devices to see the same data.
+      </p>
+      <div class="sync-key-display">${escapeHtml(newKey)}</div>
+      <div class="modal-actions">
+        <button class="ghost" onclick="copyText('${escapeAttr(newKey)}')">Copy</button>
+        <button onclick="confirmNewKey('${escapeAttr(newKey)}')">I've saved it — continue</button>
+      </div>
+      <button class="link-btn" onclick="renderSyncModal('menu')">Back</button>
+    `;
+  }
 }
-async function saveSyncCode(){
-  const code = document.getElementById('syncCodeInput').value.trim();
+function copyText(t){
+  navigator.clipboard?.writeText(t)
+    .then(()=>showToast('📋 Copied'))
+    .catch(()=>showToast('Could not copy — long-press to copy manually'));
+}
+async function submitSyncCode(){
+  const code = requireText('syncCodeInput', 'Type the sync key from your other device');
   if(!code) return;
-  syncCode = code;
-  localStorage.setItem(SYNC_CODE_KEY, code);
-  closeModal('syncModalBg');
-  await connectSync(code);
+  // validate the key actually has an account before switching to it
+  if(firebaseReady && db){
+    const btn = document.querySelector('#syncModalBody .modal-actions button:last-child');
+    if(btn) btn.textContent = 'Checking…';
+    try{
+      const docId = await codeToDocId(code);
+      const snap = await db.collection('routineGoalsApps').doc(docId).get();
+      if(!snap.exists){
+        if(btn) btn.textContent = 'Connect';
+        fieldError('syncCodeInput', 'No account found with this key — check the spelling and try again');
+        return;
+      }
+    }catch(e){
+      if(btn) btn.textContent = 'Connect';
+      fieldError('syncCodeInput', 'Could not verify the key — check your internet and try again');
+      return;
+    }
+  }
+  syncCode = code; localStorage.setItem(SYNC_CODE_KEY, code);
+  closeModal('syncModalBg'); await connectSync(code);
+}
+async function confirmNewKey(key){
+  syncCode = key; localStorage.setItem(SYNC_CODE_KEY, key);
+  closeModal('syncModalBg'); await connectSync(key);
 }
 
-function todayStr(){
-  const d = new Date();
-  return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');
-}
-function uid(){ return Date.now().toString(36)+Math.random().toString(36).slice(2,7); }
-
-// ---------- View switching ----------
+// ---------- modals / views ----------
+function openModal(id){ document.getElementById(id).classList.add('open'); }
+function closeModal(id){ document.getElementById(id).classList.remove('open'); }
 function switchView(v){
+  currentView = v;
+  // full refresh: today's date, default sub-pages, current month, top of page
+  viewDate = todayStr();
+  goalPage = 'short';
+  moneyPage = 'spend';
+  gridMonthOffset = 0;
+  moneyMonthOffset = 0;
   document.querySelectorAll('.view').forEach(el=>el.classList.remove('active'));
   document.querySelectorAll('.tab').forEach(el=>el.classList.remove('active'));
   document.getElementById('view-'+v).classList.add('active');
   document.querySelector('.tab[data-view="'+v+'"]').classList.add('active');
-  if(v==='stats') renderStats();
+  document.getElementById('segShort')?.classList.add('active');
+  document.getElementById('segLong')?.classList.remove('active');
+  document.getElementById('segSpend')?.classList.add('active');
+  document.getElementById('segEarn')?.classList.remove('active');
+  const sp = document.getElementById('moneySpendPage'), ep = document.getElementById('moneyEarnPage');
+  if(sp) sp.style.display = 'block';
+  if(ep) ep.style.display = 'none';
+  window.scrollTo({top:0});
+  renderView(v);
+}
+function renderView(v){
+  if(v==='home') renderHome();
+  if(v==='routine') renderRoutine();
+  if(v==='tasks') renderTasks();
   if(v==='goals') renderGoals();
-  if(v==='today') renderRoutines();
+  if(v==='money') renderMoney();
+  if(v==='diary') renderDiary();
+}
+function renderAll(){ renderView(currentView); }
+function goToToday(){
+  viewDate = todayStr();
+  renderAll();
+}
+let sliding = false;
+function shiftDate(delta){
+  if(sliding) return;
+  viewDate = addDays(viewDate, delta);
+  renderAll();
+  animateTracks(delta);
+}
+// Slide + zoom: track glides over, new main card scales up from side size,
+// so the side card visually zooms into the center.
+function animateTracks(delta){
+  let any = false;
+  ['routineTrack','tasksTrack'].forEach(id=>{
+    const el = document.getElementById(id);
+    if(!el || !el.offsetParent) return;
+    any = true; sliding = true;
+    const main = el.querySelector('.daycard.main');
+    const dist = Math.round(el.clientWidth * 0.19) + 10;
+    el.style.transition = 'none';
+    el.style.transform = `translateX(${delta>0 ? dist : -dist}px)`;
+    if(main){
+      main.style.transition = 'none';
+      main.style.transform = 'scale(.88)';
+      main.style.opacity = '.6';
+      main.style.filter = 'blur(1.2px)';
+    }
+    requestAnimationFrame(()=>{ requestAnimationFrame(()=>{
+      el.style.transition = 'transform .42s cubic-bezier(.25,.9,.3,1)';
+      el.style.transform = 'translateX(0)';
+      if(main){
+        main.style.transition = 'transform .42s cubic-bezier(.25,.9,.3,1), opacity .42s, filter .42s';
+        main.style.transform = 'scale(1)';
+        main.style.opacity = '1';
+        main.style.filter = 'blur(0)';
+      }
+    });});
+    setTimeout(()=>{ el.style.transition='none'; sliding = false; }, 450);
+  });
+  if(!any) sliding = false;
 }
 
-// ---------- Modals ----------
-function openModal(id){ document.getElementById(id).classList.add('open'); }
-function closeModal(id){ document.getElementById(id).classList.remove('open'); }
+// ---------- HOME ----------
+function renderHome(){
+  const t = todayStr();
+  const hour = new Date().getHours();
+  const greet = hour<12 ? 'Good morning' : hour<17 ? 'Good afternoon' : 'Good evening';
+  const pname = (data.profile && data.profile.name) ? ', '+data.profile.name.split(' ')[0] : '';
+  document.getElementById('homeGreeting').textContent = greet + pname;
+  document.getElementById('homeDateLine').textContent = niceDateLabel(t);
 
+  const act = activeRoutines(t);
+  const doneR = act.filter(r=>r.history[t]).length;
+  const pctR = act.length ? Math.round(doneR/act.length*100) : 0;
+  const bestStreak = data.routines.reduce((mx,r)=>Math.max(mx, computeStreak(r, t)), 0);
+  const tasksToday = data.tasks.filter(x=>x.date===t);
+  const pendingTasks = tasksToday.filter(x=>!x.done).length;
+  const monthPrefix = t.slice(0,7);
+  const spentToday = data.expenses.filter(e=>e.date===t).reduce((s,e)=>s+e.amount,0);
+  const spentMonth = data.expenses.filter(e=>e.date.startsWith(monthPrefix)).reduce((s,e)=>s+e.amount,0);
+  const earnedMonth = data.earnings.filter(e=>e.date.startsWith(monthPrefix)).reduce((s,e)=>s+e.amount,0);
+  const net = earnedMonth - spentMonth;
+  const avgGoal = data.goals.length
+    ? Math.round(data.goals.reduce((s,g)=>s+goalPct(g),0)/data.goals.length) : 0;
+  const pts = pointsBalance();
+
+  const circ = 2*Math.PI*26;
+  document.getElementById('bentoGrid').innerHTML = `
+    <div class="glass tile wide" onclick="switchView('routine')">
+      <div class="ringwrap">
+        <svg class="ring" viewBox="0 0 64 64">
+          <circle class="bgc" cx="32" cy="32" r="26"></circle>
+          <circle class="fgc" cx="32" cy="32" r="26" transform="rotate(-90 32 32)"
+            stroke-dasharray="${circ}" stroke-dashoffset="${circ*(1-pctR/100)}"></circle>
+        </svg>
+        <div>
+          <div class="t-label">Today's routine</div>
+          <div class="t-num green">${doneR}/${act.length} <span style="font-size:14px;font-weight:600;">done</span></div>
+          <div class="t-sub">🔥 Best streak: ${bestStreak} day${bestStreak===1?'':'s'}</div>
+        </div>
+      </div>
+    </div>
+    <div class="glass tile" onclick="switchView('tasks')">
+      <div class="t-label">Tasks today</div>
+      <div class="t-num purple">${pendingTasks}</div>
+      <div class="t-sub">${pendingTasks===0 ? 'All clear ✨' : 'pending of '+tasksToday.length}</div>
+    </div>
+    <div class="glass tile" onclick="switchView('goals')">
+      <div class="t-label">Goals avg</div>
+      <div class="t-num green">${avgGoal}%</div>
+      <div class="t-sub">${data.goals.length} active goal${data.goals.length===1?'':'s'}</div>
+    </div>
+    <div class="glass tile" onclick="switchView('money')">
+      <div class="t-label">Spent today</div>
+      <div class="t-num gold">${rupee(spentToday)}</div>
+      <div class="t-sub">Month: ${rupee(spentMonth)}</div>
+    </div>
+    <div class="glass tile" onclick="setMoneyPage('earn');switchView('money')">
+      <div class="t-label">Earned · month</div>
+      <div class="t-num earn">${rupee(earnedMonth)}</div>
+      <div class="t-sub">this month's income</div>
+    </div>
+    <div class="glass tile wide" onclick="document.getElementById('rewardsCard').scrollIntoView({behavior:'smooth'})">
+      <div class="t-label">🎁 Reward points</div>
+      <div class="t-num gold">${pts.balance} pts</div>
+      <div class="t-sub">earned ${pts.earned} · spent ${pts.spent}</div>
+    </div>
+  `;
+
+  renderRewards();
+  renderMonthGrid();
+  renderMoneyReport();
+}
+
+// ---------- money report with month navigation ----------
+function shiftMoneyMonth(delta){
+  moneyMonthOffset += delta;
+  if(moneyMonthOffset > 0) moneyMonthOffset = 0;
+  renderMoneyReport();
+}
+function renderMoneyReport(){
+  const base = new Date();
+  base.setDate(1);
+  base.setMonth(base.getMonth() + moneyMonthOffset);
+  const prefix = base.getFullYear()+'-'+String(base.getMonth()+1).padStart(2,'0');
+  document.getElementById('moneyReportLabel').textContent =
+    base.toLocaleDateString('en-GB',{month:'long', year:'numeric'});
+  const exp = data.expenses.filter(e=>e.date.startsWith(prefix));
+  const inc = data.earnings.filter(e=>e.date.startsWith(prefix));
+  document.getElementById('monthTotalAmt').textContent = rupee(exp.reduce((s,e)=>s+e.amount,0));
+  document.getElementById('monthEarnedAmt').textContent = rupee(inc.reduce((s,e)=>s+e.amount,0));
+  const byPlace = {};
+  exp.forEach(e=>{ byPlace[e.place] = (byPlace[e.place]||0)+e.amount; });
+  const sortedP = Object.entries(byPlace).sort((a,b)=>b[1]-a[1]).slice(0,6);
+  document.getElementById('topPlaces').innerHTML = sortedP.length
+    ? sortedP.map(([p,amt])=>`<div class="r"><span>${escapeHtml(p)}</span><span>${rupee(amt)}</span></div>`).join('')
+    : '<div class="empty">No spending logged this month.</div>';
+  const bySource = {};
+  inc.forEach(e=>{ bySource[e.source] = (bySource[e.source]||0)+e.amount; });
+  const sortedS = Object.entries(bySource).sort((a,b)=>b[1]-a[1]).slice(0,6);
+  document.getElementById('topSources').innerHTML = sortedS.length
+    ? sortedS.map(([p,amt])=>`<div class="r"><span>${escapeHtml(p)}</span><span style="color:var(--earn);">+${rupee(amt)}</span></div>`).join('')
+    : '<div class="empty">No earnings logged this month.</div>';
+}
+
+// ---------- month grid with month navigation ----------
+function shiftMonth(delta){
+  gridMonthOffset += delta;
+  if(gridMonthOffset > 0) gridMonthOffset = 0; // no future months
+  renderMonthGrid();
+}
+function renderMonthGrid(){
+  const el = document.getElementById('monthGrid');
+  const base = new Date();
+  base.setDate(1);
+  base.setMonth(base.getMonth() + gridMonthOffset);
+  const y = base.getFullYear(), m = base.getMonth();
+  document.getElementById('monthGridLabel').textContent =
+    base.toLocaleDateString('en-GB',{month:'long', year:'numeric'});
+  if(data.routines.length===0){
+    el.innerHTML = '<div class="empty">Add routine items to see your monthly grid.</div>'; return;
+  }
+  const daysInMonth = new Date(y, m+1, 0).getDate();
+  let html = '<table class="grid"><thead><tr><th style="text-align:left;">Habit</th>';
+  for(let d=1; d<=daysInMonth; d++) html += `<th>${d}</th>`;
+  html += '<th>✓</th></tr></thead><tbody>';
+  data.routines.forEach(r=>{
+    let count = 0, row = '';
+    for(let d=1; d<=daysInMonth; d++){
+      const key = `${y}-${String(m+1).padStart(2,'0')}-${String(d).padStart(2,'0')}`;
+      const on = !!r.history[key];
+      const sched = isScheduled(r, key);
+      if(on) count++;
+      row += `<td><div class="cell ${on?'on':(sched?'':'off')}"></div></td>`;
+    }
+    html += `<tr><td class="name">${escapeHtml(r.name)}</td>${row}<td style="color:var(--accent2);font-weight:700;">${count}</td></tr>`;
+  });
+  el.innerHTML = html + '</tbody></table>';
+}
+
+// ---------- REWARDS ----------
+function pointsBalance(){
+  const routineDone = data.routines.reduce((s,r)=>s+Object.keys(r.history).length, 0);
+  const tasksDone = data.tasks.filter(t=>t.done).length;
+  const diaryCount = Object.keys(data.diary).length;
+  const goalsDone = data.goals.filter(g=>goalPct(g)>=100).length;
+  const earned = routineDone*PTS.routine + tasksDone*PTS.task + diaryCount*PTS.diary + goalsDone*PTS.goal;
+  const spent = data.rewards.filter(r=>r.claimedAt).reduce((s,r)=>s+r.cost, 0);
+  return { earned, spent, balance: earned - spent };
+}
+function renderRewards(){
+  const el = document.getElementById('rewardsCard');
+  const pts = pointsBalance();
+  const open = data.rewards.filter(r=>!r.claimedAt);
+  const claimed = data.rewards.filter(r=>r.claimedAt).sort((a,b)=>b.claimedAt.localeCompare(a.claimedAt)).slice(0,3);
+  el.innerHTML = `
+    <div class="row between">
+      <span class="goal-meta">Balance: <b style="color:var(--money);">${pts.balance} pts</b></span>
+      <button class="ghost small" onclick="openRewardModal()">+ Add reward</button>
+    </div>
+    ${open.length ? open.map(r=>{
+      const can = pts.balance >= r.cost;
+      const pct = Math.min(100, Math.round(pts.balance/r.cost*100));
+      return `<div class="reward-row" data-id="${r.id}">
+        <div class="row between">
+          <span class="goal-title" style="font-size:13.5px;">${escapeHtml(r.title)}</span>
+          <span class="reward-cost">${r.cost} pts</span>
+        </div>
+        <div class="progress-bar" style="margin-top:6px;"><div class="progress-fill" style="width:${pct}%"></div></div>
+        <div class="row between" style="margin-top:6px;">
+          <span class="goal-meta">${can ? 'Ready to claim! 🎉' : (r.cost - pts.balance)+' pts to go'}</span>
+          <span>
+            ${can?`<button class="small" onclick="claimReward('${r.id}')">Claim 🎁</button>`:''}
+            <button class="danger" onclick="deleteReward('${r.id}')">✕</button>
+          </span>
+        </div>
+      </div>`;
+    }).join('') : '<div class="empty">No rewards yet. Give yourself something to work for!</div>'}
+    ${claimed.length ? `<div class="section-label" style="margin-top:10px;">Claimed</div>`+
+      claimed.map(r=>`<div class="reward-row" style="opacity:.65;">
+        <div class="row between">
+          <span style="font-size:13px;">🏆 ${escapeHtml(r.title)}</span>
+          <span class="goal-meta">${ddmmyyyy(r.claimedAt.slice(0,10))}</span>
+        </div>
+      </div>`).join('') : ''}
+    <div class="pts-legend">Earn: routine tick +${PTS.routine} · task done +${PTS.task} · diary entry +${PTS.diary} · goal completed +${PTS.goal}</div>
+  `;
+}
+function openRewardModal(){
+  document.getElementById('rewardTitleInput').value='';
+  document.getElementById('rewardCostInput').value='';
+  openModal('rewardModalBg');
+}
+function saveReward(){
+  const title = requireText('rewardTitleInput', 'What is the reward? — e.g. "Eat out at my favourite place"');
+  if(!title) return;
+  const cost = requireNumber('rewardCostInput', 'How many points does it cost? — e.g. 300');
+  if(!cost) return;
+  data.rewards.push({id:uid(), title, cost, createdAt: nowIso(), claimedAt: null});
+  saveData(); closeModal('rewardModalBg'); renderRewards();
+}
+function claimReward(id){
+  const r = data.rewards.find(x=>x.id===id);
+  if(!r) return;
+  if(pointsBalance().balance < r.cost) return;
+  r.claimedAt = nowIso();
+  saveData(); renderHome();
+}
+function deleteReward(id){
+  data.rewards = data.rewards.filter(r=>r.id!==id);
+  saveData(); renderRewards();
+}
+
+// ---------- ROUTINE ----------
+let editingRoutineId = null;
+let chipDays = [];
+function toggleDayChip(d){
+  const i = chipDays.indexOf(d);
+  if(i>=0) chipDays.splice(i,1); else chipDays.push(d);
+  document.querySelectorAll('#dayChips button').forEach(b=>{
+    b.classList.toggle('active', chipDays.includes(parseInt(b.dataset.d)));
+  });
+}
+function setChips(days){
+  chipDays = [...days];
+  document.querySelectorAll('#dayChips button').forEach(b=>{
+    b.classList.toggle('active', chipDays.includes(parseInt(b.dataset.d)));
+  });
+}
 function openRoutineModal(){
+  editingRoutineId = null;
+  document.getElementById('routineModalTitle').textContent = 'New routine item';
   document.getElementById('routineNameInput').value='';
+  document.getElementById('routineBlockInput').value='2';
+  document.getElementById('routineEndBtn').style.display='none';
+  setChips([]);
+  openModal('routineModalBg');
+}
+function openRoutineEdit(id){
+  const r = data.routines.find(x=>x.id===id);
+  if(!r) return;
+  editingRoutineId = id;
+  document.getElementById('routineModalTitle').textContent = 'Edit routine';
+  document.getElementById('routineNameInput').value = r.name;
+  document.getElementById('routineBlockInput').value = String(r.block);
+  document.getElementById('routineEndBtn').style.display='block';
+  setChips(daysFor(r, todayStr()));
   openModal('routineModalBg');
 }
 function saveRoutine(){
-  const name = document.getElementById('routineNameInput').value.trim();
+  const name = requireText('routineNameInput', 'Give this routine a name — e.g. "Morning workout"');
   if(!name) return;
-  data.routines.push({id:uid(), name, history:{}});
-  saveData();
-  closeModal('routineModalBg');
-  renderRoutines();
+  const block = parseInt(document.getElementById('routineBlockInput').value);
+  if(editingRoutineId){
+    const r = data.routines.find(x=>x.id===editingRoutineId);
+    r.name = name;
+    r.block = block;
+    const cur = daysFor(r, todayStr());
+    if(JSON.stringify([...cur].sort()) !== JSON.stringify([...chipDays].sort())){
+      // schedule change applies from today; past preserved
+      r.dayHistory = r.dayHistory.filter(e=>e.from !== todayStr());
+      r.dayHistory.push({from: todayStr(), days: [...chipDays]});
+      r.dayHistory.sort((a,b)=>a.from.localeCompare(b.from));
+    }
+  } else {
+    data.routines.push({
+      id:uid(), name, block, history:{}, skipDates:{},
+      dayHistory:[{from: todayStr(), days: [...chipDays]}],
+      startedOn: todayStr(), endedOn: null, createdAt: nowIso()
+    });
+  }
+  saveData(); closeModal('routineModalBg'); renderRoutine();
+}
+function endRoutine(){
+  const r = data.routines.find(x=>x.id===editingRoutineId);
+  if(!r) return;
+  r.endedOn = todayStr();
+  saveData(); closeModal('routineModalBg'); renderRoutine();
+}
+function toggleRoutine(id){
+  const r = data.routines.find(x=>x.id===id);
+  if(r.history[viewDate]) delete r.history[viewDate];
+  else r.history[viewDate] = true;
+  saveData(); renderRoutine();
+}
+// ✕ = remove from THIS day only (past + other days untouched)
+function skipRoutineDay(id){
+  const r = data.routines.find(x=>x.id===id);
+  r.skipDates[viewDate] = true;
+  delete r.history[viewDate];
+  saveData(); renderRoutine();
+}
+function sideDayCardRoutine(dateStr, dir){
+  const items = activeRoutines(dateStr).slice(0,6).map(r=>{
+    const done = !!r.history[dateStr];
+    return `<div class="si ${done?'done':''}">${done?'✓ ':''}${escapeHtml(r.name)}</div>`;
+  }).join('');
+  return `<div class="glass daycard side" onclick="shiftDate(${dir})">
+    <div class="sd">${shortDateLabel(dateStr)}</div>${items || '<div class="si">—</div>'}
+  </div>`;
+}
+function renderRoutine(){
+  document.getElementById('routineDateLabel').textContent = niceDateLabel(viewDate);
+  document.getElementById('routineTodayTag').textContent = viewDate===todayStr() ? '● Today' : '';
+  const act = activeRoutines(viewDate);
+  let main = '';
+  if(act.length===0){
+    main = '<div class="empty">No routine for this day.<br>Add one above — you can pick which weekdays it runs.</div>';
+  } else {
+    for(let b=0; b<8; b++){
+      const items = act.filter(r=>r.block===b);
+      if(items.length===0) continue; // hide empty blocks
+      main += `<div class="block-head">${BLOCK_LABELS[b]}</div>
+        <div class="blocklist" data-block="${b}">` +
+        items.map(r=>{
+          const done = !!r.history[viewDate];
+          const streak = computeStreak(r, viewDate);
+          return `<div class="checkitem" data-id="${r.id}">
+            <span class="drag-handle">☰</span>
+            <div class="checkbox ${done?'done':''}" onclick="toggleRoutine('${r.id}')">${done?'✓':''}</div>
+            <div class="item-name ${done?'done':''}" onclick="openRoutineEdit('${r.id}')">${escapeHtml(r.name)}</div>
+            ${streak>0?`<div class="streak-badge">🔥 ${streak}</div>`:''}
+            <button class="danger" title="Remove from this day only" onclick="skipRoutineDay('${r.id}')">✕</button>
+          </div>`;
+        }).join('') + '</div>';
+    }
+    main += '<div class="hint" style="margin-top:8px;">Tap a name to edit its days/time · ✕ removes it from this day only · drag ☰ to reorder</div>';
+  }
+  document.getElementById('routineTrack').innerHTML =
+    sideDayCardRoutine(addDays(viewDate,-1), -1) +
+    `<div class="glass daycard main">${main}</div>` +
+    sideDayCardRoutine(addDays(viewDate,1), 1);
+  document.querySelectorAll('#routineTrack .blocklist').forEach(bl=>{
+    attachDrag(bl, (ids)=>{ applySubsetOrder(data.routines, ids); saveData(); renderRoutine(); });
+  });
 }
 
-let currentGoalType = 'short';
-function setGoalType(t){
-  currentGoalType = t;
-  document.getElementById('btnShort').classList.toggle('active', t==='short');
-  document.getElementById('btnLong').classList.toggle('active', t==='long');
-  document.getElementById('deadlineField').style.display = t==='short' ? 'block' : 'none';
+// ---------- TASKS ----------
+function openTaskModal(){
+  document.getElementById('taskTextInput').value='';
+  openModal('taskModalBg');
+}
+function saveTask(){
+  const text = requireText('taskTextInput', 'Write what the task is — e.g. "Call the plumber"');
+  if(!text) return;
+  data.tasks.push({id:uid(), text, date:viewDate, done:false, createdAt: nowIso()});
+  saveData(); closeModal('taskModalBg'); renderTasks();
+}
+function toggleTask(id){
+  const t = data.tasks.find(x=>x.id===id);
+  t.done = !t.done;
+  t.doneAt = t.done ? nowIso() : null;
+  saveData(); renderTasks();
+}
+function deleteTask(id){
+  data.tasks = data.tasks.filter(t=>t.id!==id);
+  saveData(); renderTasks();
+}
+function moveTaskToNextDay(id){
+  const t = data.tasks.find(x=>x.id===id);
+  t.date = addDays(t.date, 1);
+  saveData(); renderTasks();
+}
+function sideDayCardTasks(dateStr, dir){
+  const items = data.tasks.filter(t=>t.date===dateStr).slice(0,6).map(t=>
+    `<div class="si ${t.done?'done':''}">${t.done?'✓ ':''}${escapeHtml(t.text)}</div>`
+  ).join('');
+  return `<div class="glass daycard side" onclick="shiftDate(${dir})">
+    <div class="sd">${shortDateLabel(dateStr)}</div>${items || '<div class="si">—</div>'}
+  </div>`;
+}
+function renderTasks(){
+  document.getElementById('tasksDateLabel').textContent = niceDateLabel(viewDate);
+  document.getElementById('tasksTodayTag').textContent = viewDate===todayStr() ? '● Today' : '';
+  const todays = data.tasks.filter(t=>t.date===viewDate);
+  const main = todays.length === 0
+    ? '<div class="empty">No tasks for this day.</div>'
+    : `<div id="taskListInner">` + todays.map(t=>`<div class="checkitem" data-id="${t.id}">
+        <span class="drag-handle">☰</span>
+        <div class="checkbox ${t.done?'done':''}" onclick="toggleTask('${t.id}')">${t.done?'✓':''}</div>
+        <div class="item-name ${t.done?'done':''}">${escapeHtml(t.text)}
+          <div class="item-time">${t.done && t.doneAt ? '✓ '+fmtDateTime(t.doneAt) : 'added '+fmtDateTime(t.createdAt)}</div>
+        </div>
+        ${!t.done?`<button class="ghost small" onclick="moveTaskToNextDay('${t.id}')">→ Tmrw</button>`:''}
+        <button class="danger" onclick="deleteTask('${t.id}')">✕</button>
+      </div>`).join('') + '</div>';
+  document.getElementById('tasksTrack').innerHTML =
+    sideDayCardTasks(addDays(viewDate,-1), -1) +
+    `<div class="glass daycard main">${main}</div>` +
+    sideDayCardTasks(addDays(viewDate,1), 1);
+  attachDrag(document.getElementById('taskListInner'), (ids)=>{
+    applySubsetOrder(data.tasks, ids); saveData(); renderTasks();
+  });
+}
+
+// ---------- GOALS ----------
+const KIND_META = {
+  pages:  {label:'📖 Pages',   targetLabel:'Total pages in the book',    updateHint:'Enter the last page number you reached.', updateLabel:'Last page reached', absolute:true},
+  money:  {label:'💰 Saving',  targetLabel:'Price / amount to save (₹)', updateHint:'How much did you add to this saving?',    updateLabel:'Amount to add (₹)', absolute:false},
+  count:  {label:'🔢 Count',   targetLabel:'Target amount',              updateHint:'How much progress to add?',               updateLabel:'Amount to add',     absolute:false},
+  simple: {label:'⚡ Simple',  targetLabel:'',                           updateHint:'Set your overall progress in percent.',   updateLabel:'Progress (%)',      absolute:true}
+};
+let goalKind = 'simple';
+function setGoalKind(k){
+  goalKind = k;
+  ['pages','money','count','simple'].forEach(x=>{
+    document.getElementById('kind'+x.charAt(0).toUpperCase()+x.slice(1)).classList.toggle('active', x===k);
+  });
+  document.getElementById('targetField').style.display = k==='simple' ? 'none' : 'block';
+  document.getElementById('unitField').style.display = k==='count' ? 'block' : 'none';
+  if(k!=='simple') document.getElementById('targetLabel').textContent = KIND_META[k].targetLabel;
+}
+function setGoalPage(p){
+  goalPage = p;
+  document.getElementById('segShort').classList.toggle('active', p==='short');
+  document.getElementById('segLong').classList.toggle('active', p==='long');
+  renderGoals();
 }
 function openGoalModal(){
   document.getElementById('goalTitleInput').value='';
+  document.getElementById('goalTargetInput').value='';
+  document.getElementById('goalUnitInput').value='';
   document.getElementById('goalDeadlineInput').value='';
-  setGoalType('short');
+  setGoalKind('simple');
   openModal('goalModalBg');
 }
 function saveGoal(){
-  const title = document.getElementById('goalTitleInput').value.trim();
+  const title = requireText('goalTitleInput', 'Name your goal — e.g. "Buy a bike"');
   if(!title) return;
-  const deadline = document.getElementById('goalDeadlineInput').value;
+  let target = 100, unit = '%';
+  if(goalKind !== 'simple'){
+    target = requireNumber('goalTargetInput',
+      goalKind==='pages' ? 'How many pages does the book have?' :
+      goalKind==='money' ? 'Enter the price / amount you want to save' :
+      'Enter the target amount, e.g. 100');
+    if(!target) return;
+    unit = goalKind==='pages' ? 'pages' : goalKind==='money' ? '₹' :
+           (document.getElementById('goalUnitInput').value.trim() || 'units');
+  }
   data.goals.push({
-    id:uid(), title, type: currentGoalType,
-    deadline: currentGoalType==='short' ? deadline : '',
-    milestones: [], created: todayStr()
+    id:uid(), title, term: goalPage, kind: goalKind, target, unit,
+    current: 0, log: [], deadline: document.getElementById('goalDeadlineInput').value || '',
+    createdAt: nowIso()
   });
-  saveData();
-  closeModal('goalModalBg');
-  renderGoals();
-}
-
-let milestoneTargetGoalId = null;
-function openMilestoneModal(goalId){
-  milestoneTargetGoalId = goalId;
-  document.getElementById('milestoneInput').value='';
-  openModal('milestoneModalBg');
-}
-function saveMilestone(){
-  const text = document.getElementById('milestoneInput').value.trim();
-  if(!text) return;
-  const goal = data.goals.find(g=>g.id===milestoneTargetGoalId);
-  if(goal){ goal.milestones.push({id:uid(), text, done:false}); saveData(); }
-  closeModal('milestoneModalBg');
-  renderGoals();
-}
-
-// ---------- Routines (Today view) ----------
-function computeStreak(routine){
-  let streak = 0;
-  let d = new Date();
-  // if not done today, start checking from yesterday
-  if(!routine.history[todayStr()]) d.setDate(d.getDate()-1);
-  while(true){
-    const key = d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');
-    if(routine.history[key]){ streak++; d.setDate(d.getDate()-1); }
-    else break;
-  }
-  return streak;
-}
-
-function toggleRoutine(id){
-  const r = data.routines.find(x=>x.id===id);
-  const t = todayStr();
-  if(r.history[t]) delete r.history[t];
-  else r.history[t] = true;
-  saveData();
-  renderRoutines();
-}
-function deleteRoutine(id){
-  data.routines = data.routines.filter(r=>r.id!==id);
-  saveData();
-  renderRoutines();
-}
-
-function renderRoutines(){
-  document.getElementById('todayDate').textContent = new Date().toLocaleDateString(undefined,{weekday:'long', month:'long', day:'numeric'});
-  const list = document.getElementById('routineList');
-  if(data.routines.length===0){
-    list.innerHTML = '<div class="empty">No routine items yet.<br>Add your first daily habit above.</div>';
-    return;
-  }
-  const t = todayStr();
-  list.innerHTML = data.routines.map(r=>{
-    const done = !!r.history[t];
-    const streak = computeStreak(r);
-    return `<div class="checkitem">
-      <div class="checkbox ${done?'done':''}" onclick="toggleRoutine('${r.id}')">${done?'✓':''}</div>
-      <div class="item-name ${done?'done':''}">${escapeHtml(r.name)}</div>
-      ${streak>0?`<div class="streak-badge">🔥 ${streak}</div>`:''}
-      <button class="danger" onclick="deleteRoutine('${r.id}')">✕</button>
-    </div>`;
-  }).join('');
-}
-
-// ---------- Goals ----------
-function toggleMilestone(goalId, msId){
-  const g = data.goals.find(x=>x.id===goalId);
-  const m = g.milestones.find(x=>x.id===msId);
-  m.done = !m.done;
-  saveData();
-  renderGoals();
+  saveData(); closeModal('goalModalBg'); renderGoals();
 }
 function deleteGoal(id){
   data.goals = data.goals.filter(g=>g.id!==id);
-  saveData();
-  renderGoals();
+  saveData(); renderGoals();
 }
-function goalProgress(g){
-  if(g.milestones.length===0) return 0;
-  const done = g.milestones.filter(m=>m.done).length;
-  return Math.round(done/g.milestones.length*100);
+function goalPct(g){
+  if(!g.target) return 0;
+  return Math.min(100, Math.round((g.current||0)/g.target*100));
 }
-function daysLeft(deadline){
-  if(!deadline) return null;
-  const d = new Date(deadline+'T00:00:00');
-  const now = new Date(todayStr()+'T00:00:00');
-  return Math.round((d-now)/86400000);
+let progressGoalId = null;
+function openProgressModal(goalId){
+  progressGoalId = goalId;
+  const g = data.goals.find(x=>x.id===goalId);
+  const meta = KIND_META[g.kind] || KIND_META.simple;
+  document.getElementById('progressModalTitle').textContent = g.title;
+  document.getElementById('progressModalHint').textContent = meta.updateHint;
+  document.getElementById('progressInputLabel').textContent = meta.updateLabel;
+  document.getElementById('progressValueInput').value = '';
+  openModal('progressModalBg');
+}
+function submitProgress(){
+  const g = data.goals.find(x=>x.id===progressGoalId);
+  if(!g) return;
+  const val = parseFloat(document.getElementById('progressValueInput').value);
+  if(isNaN(val) || val<0){ fieldError('progressValueInput', 'Enter a number — e.g. 50'); return; }
+  const meta = KIND_META[g.kind] || KIND_META.simple;
+  const before = g.current || 0;
+  if(meta.absolute){ g.current = Math.min(val, g.target); }
+  else { g.current = Math.min(before + val, g.target); }
+  g.log = g.log || [];
+  g.log.push({at: nowIso(), value: val, total: g.current});
+  saveData(); closeModal('progressModalBg'); renderGoals();
 }
 function renderGoalCard(g){
-  const pct = goalProgress(g);
-  const dl = g.type==='short' ? daysLeft(g.deadline) : null;
-  let meta = '';
-  if(g.type==='short' && g.deadline){
-    meta = dl===null?'' : dl>0 ? `${dl} day${dl===1?'':'s'} left` : dl===0 ? 'Due today' : `${Math.abs(dl)} day${Math.abs(dl)===1?'':'s'} overdue`;
+  const pct = goalPct(g);
+  const meta = KIND_META[g.kind] || KIND_META.simple;
+  let progressText = '';
+  if(g.kind==='pages') progressText = `Page ${g.current||0} of ${g.target}`;
+  else if(g.kind==='money') progressText = `${rupee(g.current)} saved of ${rupee(g.target)}`;
+  else if(g.kind==='count') progressText = `${g.current||0} / ${g.target} ${escapeHtml(g.unit)}`;
+  else progressText = `${pct}% complete`;
+  let deadlineText = '';
+  if(g.deadline){
+    const dl = Math.round((new Date(g.deadline+'T00:00:00') - new Date(todayStr()+'T00:00:00'))/86400000);
+    deadlineText = dl>0 ? ` · ${dl}d left` : dl===0 ? ' · due today' : ` · ${Math.abs(dl)}d overdue`;
   }
-  return `<div class="card">
+  const recent = (g.log||[]).slice(-3).reverse().map(le=>
+    `<div class="le">${meta.absolute ? '→ '+le.value : '+'+le.value}${g.kind==='money'?'₹':''} · ${fmtDateTime(le.at)}</div>`
+  ).join('');
+  return `<div class="glass card" data-id="${g.id}">
     <div class="row between">
-      <div>
-        <div class="goal-title">${escapeHtml(g.title)}</div>
-        ${meta?`<div class="goal-meta">${meta}</div>`:''}
+      <span class="drag-handle">☰</span>
+      <div style="flex:1;min-width:0;">
+        <div class="goal-title">${pct>=100?'🏆 ':''}${escapeHtml(g.title)}</div>
+        <div class="goal-meta">${progressText}${deadlineText} · started ${ddmmyyyy(g.createdAt.slice(0,10))}</div>
       </div>
+      <span class="kind-badge">${meta.label}</span>
       <button class="danger" onclick="deleteGoal('${g.id}')">✕</button>
     </div>
     <div class="progress-bar"><div class="progress-fill" style="width:${pct}%"></div></div>
-    <div class="goal-meta">${pct}% complete · ${g.milestones.filter(m=>m.done).length}/${g.milestones.length} milestones</div>
-    ${g.milestones.map(m=>`<div class="milestone">
-      <div class="checkbox ${m.done?'done':''}" onclick="toggleMilestone('${g.id}','${m.id}')">${m.done?'✓':''}</div>
-      <div style="${m.done?'text-decoration:line-through;color:var(--muted);':''}">${escapeHtml(m.text)}</div>
-    </div>`).join('')}
-    <div class="milestone-add">
-      <button class="small ghost" style="background:var(--card2);width:100%;" onclick="openMilestoneModal('${g.id}')">+ Add milestone</button>
+    <div class="row between" style="margin-top:8px;">
+      <span class="pct-label">${pct}%</span>
+      ${pct<100?`<button class="ghost small" onclick="openProgressModal('${g.id}')">+ Update progress</button>`:'<span class="pct-label">Completed 🎉</span>'}
     </div>
+    ${recent?`<div class="goal-log">${recent}</div>`:''}
   </div>`;
 }
 function renderGoals(){
-  const shorts = data.goals.filter(g=>g.type==='short');
-  const longs = data.goals.filter(g=>g.type==='long');
-  document.getElementById('shortGoalList').innerHTML = shorts.length
-    ? shorts.map(renderGoalCard).join('')
-    : '<div class="empty">No short-term goals yet.</div>';
-  document.getElementById('longGoalList').innerHTML = longs.length
-    ? longs.map(renderGoalCard).join('')
-    : '<div class="empty">No long-term goals yet.</div>';
+  const list = data.goals.filter(g=>g.term===goalPage);
+  const el = document.getElementById('goalList');
+  el.innerHTML = list.length
+    ? list.map(renderGoalCard).join('')
+    : `<div class="empty">No ${goalPage}-term goals yet.<br>Tap "+ Add goal" to create one.</div>`;
+  attachDrag(el, (ids)=>{ applySubsetOrder(data.goals, ids); saveData(); renderGoals(); });
 }
 
-// ---------- Stats ----------
-function renderStats(){
-  const totalRoutines = data.routines.length;
-  const t = todayStr();
-  const doneToday = data.routines.filter(r=>r.history[t]).length;
-  const totalGoals = data.goals.length;
-  const completedGoals = data.goals.filter(g=>g.milestones.length>0 && g.milestones.every(m=>m.done)).length;
-  const bestStreak = data.routines.reduce((max,r)=>Math.max(max, computeStreak(r)),0);
+// ---------- MONEY ----------
+function setMoneyPage(p){
+  moneyPage = p;
+  document.getElementById('segSpend').classList.toggle('active', p==='spend');
+  document.getElementById('segEarn').classList.toggle('active', p==='earn');
+  document.getElementById('moneySpendPage').style.display = p==='spend' ? 'block' : 'none';
+  document.getElementById('moneyEarnPage').style.display = p==='earn' ? 'block' : 'none';
+  if(currentView==='money') renderMoney();
+}
+function addExpense(){
+  const amt = requireNumber('expenseAmountInput', 'Enter how much you spent — e.g. 250');
+  if(!amt) return;
+  const place = requireText('expensePlaceInput', 'Where did you spend it? — e.g. Groceries');
+  if(!place) return;
+  const note = document.getElementById('expenseNoteInput').value.trim();
+  data.expenses.push({id:uid(), date:viewDate, amount:amt, place, note, at: nowIso()});
+  saveData();
+  document.getElementById('expenseAmountInput').value='';
+  document.getElementById('expensePlaceInput').value='';
+  document.getElementById('expenseNoteInput').value='';
+  renderMoney();
+}
+function deleteExpense(id){
+  data.expenses = data.expenses.filter(e=>e.id!==id);
+  saveData(); renderMoney();
+}
+function addEarning(){
+  const amt = requireNumber('earnAmountInput', 'Enter how much you earned — e.g. 5000');
+  if(!amt) return;
+  const source = requireText('earnSourceInput', 'Where did it come from? — e.g. Salary');
+  if(!source) return;
+  const note = document.getElementById('earnNoteInput').value.trim();
+  data.earnings.push({id:uid(), date:viewDate, amount:amt, source, note, at: nowIso()});
+  saveData();
+  document.getElementById('earnAmountInput').value='';
+  document.getElementById('earnSourceInput').value='';
+  document.getElementById('earnNoteInput').value='';
+  renderMoney();
+}
+function deleteEarning(id){
+  data.earnings = data.earnings.filter(e=>e.id!==id);
+  saveData(); renderMoney();
+}
+function renderMoney(){
+  document.getElementById('moneyDateLabel').textContent = niceDateLabel(viewDate);
+  document.getElementById('moneyTodayTag').textContent = viewDate===todayStr() ? '● Today' : '';
 
-  document.getElementById('statGrid').innerHTML = `
-    <div class="stat-card"><div class="stat-num">${doneToday}/${totalRoutines}</div><div class="stat-label">Done today</div></div>
-    <div class="stat-card"><div class="stat-num">${bestStreak}</div><div class="stat-label">Best streak (days)</div></div>
-    <div class="stat-card"><div class="stat-num">${totalGoals}</div><div class="stat-label">Active goals</div></div>
-    <div class="stat-card"><div class="stat-num">${completedGoals}</div><div class="stat-label">Goals completed</div></div>
-  `;
+  const places = [...new Set(data.expenses.map(e=>e.place))];
+  document.getElementById('placesList').innerHTML = places.map(p=>`<option value="${escapeAttr(p)}">`).join('');
+  const todaysE = data.expenses.filter(e=>e.date===viewDate);
+  document.getElementById('dayTotalAmt').textContent = rupee(todaysE.reduce((s,e)=>s+e.amount,0));
+  document.getElementById('expenseList').innerHTML = todaysE.length
+    ? todaysE.map(e=>`<div class="expense-row">
+        <div class="expense-place">
+          <div class="p">${escapeHtml(e.place)}</div>
+          <div class="n">${e.note?escapeHtml(e.note)+' · ':''}${fmtTime(e.at)}</div>
+        </div>
+        <div class="expense-amt">${rupee(e.amount)}</div>
+        <button class="danger" onclick="deleteExpense('${e.id}')">✕</button>
+      </div>`).join('')
+    : '<div class="empty">No spending logged for this day.</div>';
 
-  const streakList = document.getElementById('streakList');
-  if(data.routines.length===0){
-    streakList.innerHTML = '<div class="empty">Add routine items to see streaks here.</div>';
-    return;
+  const sources = [...new Set(data.earnings.map(e=>e.source))];
+  document.getElementById('sourcesList').innerHTML = sources.map(s=>`<option value="${escapeAttr(s)}">`).join('');
+  // earnings: whole month of the viewed date, latest first, date shown under source
+  const monthPrefix2 = viewDate.slice(0,7);
+  const monthI = data.earnings.filter(e=>e.date.startsWith(monthPrefix2))
+    .sort((a,b)=>(b.at||b.date).localeCompare(a.at||a.date));
+  document.getElementById('dayEarnAmt').textContent = rupee(monthI.reduce((s,e)=>s+e.amount,0));
+  document.getElementById('earnList').innerHTML = monthI.length
+    ? monthI.map(e=>`<div class="expense-row">
+        <div class="expense-place">
+          <div class="p">${escapeHtml(e.source)}</div>
+          <div class="n">${ddmmyyyy(e.date)}${e.note?' · '+escapeHtml(e.note):''}</div>
+        </div>
+        <div class="expense-amt earn">+${rupee(e.amount)}</div>
+        <button class="danger" onclick="deleteEarning('${e.id}')">✕</button>
+      </div>`).join('')
+    : '<div class="empty">No earnings logged this month.</div>';
+}
+
+// ---------- DIARY ----------
+function renderDiary(){
+  document.getElementById('diaryDateLabel').textContent = niceDateLabel(viewDate);
+  document.getElementById('diaryTodayTag').textContent = viewDate===todayStr() ? '● Today' : '';
+  const entry = data.diary[viewDate];
+  document.getElementById('diaryTextInput').value = entry ? entry.text : '';
+  document.getElementById('diarySavedAt').textContent = entry ? 'Last saved '+fmtDateTime(entry.updatedAt) : 'Not written yet';
+  const dates = Object.keys(data.diary).sort().reverse().slice(0,7);
+  document.getElementById('diaryRecentList').innerHTML = dates.length
+    ? dates.map(d=>{
+        const snip = data.diary[d].text.slice(0,90);
+        return `<div class="glass card" style="cursor:pointer;" onclick="openDiaryDate('${d}')">
+          <div class="row between">
+            <span class="goal-title" style="font-size:13.5px;">${niceDateLabel(d)}</span>
+            ${d===todayStr()?'<span class="kind-badge">Today</span>':''}
+          </div>
+          <div class="goal-meta" style="margin-top:5px;">${escapeHtml(snip)}${data.diary[d].text.length>90?'…':''}</div>
+        </div>`;
+      }).join('')
+    : '<div class="empty">No diary entries yet. Tonight, write your first one.</div>';
+}
+function openDiaryDate(d){
+  viewDate = d;
+  renderDiary();
+  window.scrollTo({top:0, behavior:'smooth'});
+}
+function saveDiaryEntry(){
+  const text = document.getElementById('diaryTextInput').value.trim();
+  if(text) data.diary[viewDate] = { text, updatedAt: nowIso() };
+  else delete data.diary[viewDate];
+  saveData();
+  const btn = document.getElementById('diarySaveBtn');
+  btn.textContent = 'Saved ✓';
+  setTimeout(()=>{ btn.textContent = 'Save entry'; }, 1400);
+  renderDiary();
+}
+
+// ---------- PROFILE / APPEARANCE / EXPORT ----------
+const MODE_KEY = 'lifeLogMode';
+const WALL_KEY = 'lifeLogWallpaper';
+function setMode(m){
+  document.body.classList.toggle('light', m==='light');
+  document.documentElement.classList.toggle('light-root', m==='light');
+  localStorage.setItem(MODE_KEY, m);
+  document.querySelectorAll('#modePick button').forEach(b=>{
+    b.classList.toggle('active', b.dataset.mode===m);
+  });
+}
+function applyAppearance(){
+  const m = localStorage.getItem(MODE_KEY) || 'dark';
+  document.body.classList.toggle('light', m==='light');
+  document.documentElement.classList.toggle('light-root', m==='light');
+  const wall = localStorage.getItem(WALL_KEY);
+  if(wall){
+    document.getElementById('wallLayer').style.backgroundImage = `url(${wall})`;
+    document.body.classList.add('has-wall');
   }
-  streakList.innerHTML = data.routines.map(r=>{
-    const streak = computeStreak(r);
-    // last 7 days heat
-    const cells = [];
-    for(let i=6;i>=0;i--){
-      const d = new Date();
-      d.setDate(d.getDate()-i);
-      const key = d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');
-      cells.push(`<div class="${r.history[key]?'on':''}"></div>`);
+}
+function uploadWallpaper(ev){
+  const file = ev.target.files && ev.target.files[0];
+  if(!file) return;
+  const reader = new FileReader();
+  reader.onload = ()=>{
+    const img = new Image();
+    img.onload = ()=>{
+      // downscale to keep localStorage small
+      const maxW = 1400;
+      const scale = Math.min(1, maxW / img.width);
+      const canvas = document.createElement('canvas');
+      canvas.width = Math.round(img.width*scale);
+      canvas.height = Math.round(img.height*scale);
+      canvas.getContext('2d').drawImage(img, 0, 0, canvas.width, canvas.height);
+      const dataUrl = canvas.toDataURL('image/jpeg', .72);
+      try{
+        localStorage.setItem(WALL_KEY, dataUrl);
+        document.getElementById('wallLayer').style.backgroundImage = `url(${dataUrl})`;
+        document.body.classList.add('has-wall');
+        document.getElementById('wallRemoveBtn').style.display = 'block';
+      }catch(e){
+        alert('That image is too large to store — try a smaller photo.');
+      }
+    };
+    img.src = reader.result;
+  };
+  reader.readAsDataURL(file);
+  ev.target.value = '';
+}
+function removeWallpaper(){
+  localStorage.removeItem(WALL_KEY);
+  document.body.classList.remove('has-wall');
+  document.getElementById('wallLayer').style.backgroundImage = '';
+  document.getElementById('wallRemoveBtn').style.display = 'none';
+}
+function openProfileModal(){
+  const p = data.profile || {};
+  document.getElementById('profNameInput').value = p.name || '';
+  document.getElementById('profDobInput').value = p.dob || '';
+  document.getElementById('profCityInput').value = p.city || '';
+  document.getElementById('profWorkInput').value = p.work || '';
+  document.getElementById('profAboutInput').value = p.about || '';
+  document.getElementById('profSyncSummary').textContent = syncCode
+    ? 'Connected · key: '+syncCode : 'Not synced yet — tap to set up';
+  const m = localStorage.getItem(MODE_KEY) || 'dark';
+  document.querySelectorAll('#modePick button').forEach(b=>{
+    b.classList.toggle('active', b.dataset.mode===m);
+  });
+  document.getElementById('wallRemoveBtn').style.display =
+    localStorage.getItem(WALL_KEY) ? 'block' : 'none';
+  const hasPin = !!localStorage.getItem(PIN_KEY);
+  document.getElementById('pinBtnLabel').textContent = hasPin ? 'Change app PIN' : 'Set app PIN';
+  document.getElementById('pinRemoveBtn').style.display = hasPin ? 'block' : 'none';
+  const bioSet = !!localStorage.getItem(BIO_KEY);
+  document.getElementById('bioSetupBtn').style.display = hasPin && !bioSet ? 'block' : 'none';
+  openModal('profileModalBg');
+}
+function saveProfile(){
+  data.profile = {
+    name: document.getElementById('profNameInput').value.trim(),
+    dob: document.getElementById('profDobInput').value,
+    city: document.getElementById('profCityInput').value.trim(),
+    work: document.getElementById('profWorkInput').value.trim(),
+    about: document.getElementById('profAboutInput').value.trim(),
+    updatedAt: nowIso()
+  };
+  saveData();
+  closeModal('profileModalBg');
+  if(currentView==='home') renderHome();
+}
+function exportAllData(filenamePrefix){
+  const payload = { exportedAt: nowIso(), app: 'Life OS', ...data };
+  const blob = new Blob([JSON.stringify(payload, null, 2)], {type:'application/json'});
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = (filenamePrefix||'lifeos-export')+'-'+todayStr()+'.json';
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
+  setTimeout(()=>URL.revokeObjectURL(url), 2000);
+}
+
+// ---------- toast ----------
+let toastTimer = null;
+function showToast(msg){
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.classList.add('show');
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(()=>t.classList.remove('show'), 3200);
+}
+
+// ---------- automatic weekly backup ----------
+const BACKUP_KEY = 'lifeOsLastBackup';
+function maybeWeeklyBackup(){
+  const hasData = data.routines.length || data.tasks.length || data.goals.length ||
+    data.expenses.length || data.earnings.length || Object.keys(data.diary).length;
+  if(!hasData) return;
+  const last = localStorage.getItem(BACKUP_KEY);
+  const week = 7*24*60*60*1000;
+  if(!last){ localStorage.setItem(BACKUP_KEY, String(Date.now())); return; }
+  if(Date.now() - parseInt(last) >= week){
+    exportAllData('lifeos-backup');
+    localStorage.setItem(BACKUP_KEY, String(Date.now()));
+    showToast('📦 Weekly backup saved to your Downloads');
+  }
+}
+
+// ---------- import from JSON ----------
+function importData(ev){
+  const file = ev.target.files && ev.target.files[0];
+  ev.target.value = '';
+  if(!file) return;
+  const reader = new FileReader();
+  reader.onload = ()=>{
+    try{
+      const parsed = JSON.parse(reader.result);
+      const looksValid = parsed && (Array.isArray(parsed.routines) || Array.isArray(parsed.goals)
+        || Array.isArray(parsed.tasks) || parsed.diary);
+      if(!looksValid){ showToast('⚠️ That file doesn\'t look like a Life OS backup'); return; }
+      if(!confirm('Replace ALL current data with this backup? This cannot be undone.')) return;
+      data = normalizeData(parsed);
+      saveData();
+      renderAll();
+      closeModal('profileModalBg');
+      showToast('✅ Backup imported successfully');
+    }catch(e){
+      showToast('⚠️ Could not read that file — is it a valid JSON export?');
     }
-    return `<div class="card">
-      <div class="row between">
-        <div class="goal-title">${escapeHtml(r.name)}</div>
-        <div class="streak-badge">🔥 ${streak}</div>
-      </div>
-      <div class="heat">${cells.join('')}</div>
-    </div>`;
-  }).join('');
+  };
+  reader.readAsText(file);
 }
 
-function escapeHtml(s){
-  const d = document.createElement('div');
-  d.textContent = s;
-  return d.innerHTML;
+// ---------- PIN + biometric lock (phone only) ----------
+const PIN_KEY = 'lifeOsPinHash';
+const BIO_KEY = 'lifeOsBioCred';
+function isMobileDevice(){
+  return /Android|iPhone|iPad|iPod/i.test(navigator.userAgent);
+}
+async function hashPin(pin){
+  const enc = new TextEncoder().encode('lifeos-salt::'+pin);
+  const buf = await crypto.subtle.digest('SHA-256', enc);
+  return Array.from(new Uint8Array(buf)).map(b=>b.toString(16).padStart(2,'0')).join('');
+}
+let pinEntry = '';
+let pinMode = 'unlock'; // 'unlock' | 'setup' | 'confirm'
+let pinSetupFirst = '';
+function renderPinDots(len, total){
+  const el = document.getElementById('pinDots');
+  el.classList.remove('err');
+  el.innerHTML = Array.from({length: total}, (_,i)=>`<span class="${i<len?'fill':''}"></span>`).join('');
+}
+function showLock(){
+  pinEntry = ''; pinMode = 'unlock';
+  document.getElementById('lockTitle').textContent = 'Enter your PIN';
+  renderPinDots(0, expectedPinLength());
+  document.getElementById('bioBtn').style.display = localStorage.getItem(BIO_KEY) ? 'block' : 'none';
+  document.getElementById('lockScreen').classList.add('open');
+  if(localStorage.getItem(BIO_KEY)) setTimeout(tryBiometric, 350);
+}
+function hideLock(){
+  document.getElementById('lockScreen').classList.remove('open');
+}
+function expectedPinLength(){
+  return parseInt(localStorage.getItem('lifeOsPinLen') || '4');
+}
+async function pinPress(d){
+  const total = pinMode==='unlock' ? expectedPinLength() : (pinSetupLen || 4);
+  if(pinEntry.length >= total) return;
+  pinEntry += d;
+  renderPinDots(pinEntry.length, total);
+  if(pinEntry.length === total){
+    if(pinMode === 'unlock'){
+      const h = await hashPin(pinEntry);
+      if(h === localStorage.getItem(PIN_KEY)){
+        if(navigator.vibrate) navigator.vibrate(25);
+        hideLock();
+      } else {
+        if(navigator.vibrate) navigator.vibrate([70,50,70]);
+        document.getElementById('pinDots').classList.add('err');
+        setTimeout(()=>{ pinEntry=''; renderPinDots(0, total); }, 450);
+      }
+    } else if(pinMode === 'setup'){
+      pinSetupFirst = pinEntry;
+      pinEntry = '';
+      pinMode = 'confirm';
+      document.getElementById('lockTitle').textContent = 'Confirm your PIN';
+      renderPinDots(0, total);
+    } else if(pinMode === 'confirm'){
+      if(pinEntry === pinSetupFirst){
+        const h = await hashPin(pinEntry);
+        localStorage.setItem(PIN_KEY, h);
+        localStorage.setItem('lifeOsPinLen', String(pinEntry.length));
+        hideLock();
+        showToast('🔒 PIN set — the app will ask for it on your phone');
+        openProfileModal();
+      } else {
+        if(navigator.vibrate) navigator.vibrate([70,50,70]);
+        document.getElementById('lockTitle').textContent = 'PINs didn\'t match — start again';
+        pinEntry=''; pinSetupFirst=''; pinMode='setup';
+        renderPinDots(0, pinSetupLen);
+      }
+    }
+  }
+}
+function pinBackspace(){
+  pinEntry = pinEntry.slice(0,-1);
+  const total = pinMode==='unlock' ? expectedPinLength() : (pinSetupLen || 4);
+  renderPinDots(pinEntry.length, total);
+}
+let pinSetupLen = 4;
+function startPinSetup(){
+  const choice = prompt('PIN length — type 4 or 6:', '4');
+  if(choice !== '4' && choice !== '6'){ if(choice!==null) showToast('Please type 4 or 6'); return; }
+  pinSetupLen = parseInt(choice);
+  closeModal('profileModalBg');
+  pinEntry = ''; pinSetupFirst = ''; pinMode = 'setup';
+  document.getElementById('lockTitle').textContent = 'Choose a '+pinSetupLen+'-digit PIN';
+  renderPinDots(0, pinSetupLen);
+  document.getElementById('bioBtn').style.display = 'none';
+  document.getElementById('lockScreen').classList.add('open');
+}
+function removePin(){
+  if(!confirm('Remove the PIN lock?')) return;
+  localStorage.removeItem(PIN_KEY);
+  localStorage.removeItem(BIO_KEY);
+  localStorage.removeItem('lifeOsPinLen');
+  openProfileModal();
+  showToast('PIN removed');
+}
+async function enableBiometric(){
+  try{
+    const cred = await navigator.credentials.create({publicKey:{
+      challenge: crypto.getRandomValues(new Uint8Array(32)),
+      rp: {name:'Life OS'},
+      user: {id: crypto.getRandomValues(new Uint8Array(16)), name:'lifeos-user', displayName:'Life OS user'},
+      pubKeyCredParams: [{type:'public-key', alg:-7},{type:'public-key', alg:-257}],
+      authenticatorSelection: {authenticatorAttachment:'platform', userVerification:'required'},
+      timeout: 60000
+    }});
+    const rawId = btoa(String.fromCharCode(...new Uint8Array(cred.rawId)));
+    localStorage.setItem(BIO_KEY, rawId);
+    openProfileModal();
+    showToast('🫆 Fingerprint unlock enabled');
+  }catch(e){
+    showToast('Could not enable fingerprint — your device may not support it here');
+  }
+}
+async function tryBiometric(){
+  const stored = localStorage.getItem(BIO_KEY);
+  if(!stored) return;
+  try{
+    const id = Uint8Array.from(atob(stored), c=>c.charCodeAt(0));
+    await navigator.credentials.get({publicKey:{
+      challenge: crypto.getRandomValues(new Uint8Array(32)),
+      allowCredentials: [{type:'public-key', id}],
+      userVerification: 'required',
+      timeout: 60000
+    }});
+    if(navigator.vibrate) navigator.vibrate(25);
+    hideLock();
+  }catch(e){ /* fall back to PIN */ }
 }
 
-// init
-renderRoutines();
-renderGoals();
-if(syncCode){
-  connectSync(syncCode);
-} else {
-  setSyncStatus('Not synced — tap ⚙ Sync to connect', false);
+// ---------- Enter key = save in open modal ----------
+document.addEventListener('keydown', (e)=>{
+  if(e.key !== 'Enter') return;
+  if(document.activeElement && document.activeElement.tagName === 'TEXTAREA') return;
+  const openBg = document.querySelector('.modal-bg.open');
+  if(!openBg) return;
+  const btns = openBg.querySelectorAll('.modal-actions button');
+  if(btns.length){
+    e.preventDefault();
+    btns[btns.length-1].click();
+  }
+});
+
+// ---------- init ----------
+applyAppearance();
+// lock the app on phones if a PIN is set (laptop opens directly)
+if(localStorage.getItem(PIN_KEY) && isMobileDevice()){
+  showLock();
+}
+renderAll();
+if(syncCode){ connectSync(syncCode); }
+else {
+  setSyncStatus('Not synced', false);
   loadLocalOnly();
-  setTimeout(openSyncModal, 400);
+  setTimeout(openSyncModal, 500);
 }
+setTimeout(maybeWeeklyBackup, 2500);
 
-// ---------- PWA install + service worker ----------
+// ---------- PWA ----------
 if ('serviceWorker' in navigator) {
   window.addEventListener('load', () => {
     navigator.serviceWorker.register('sw.js').catch(()=>{});
   });
 }
-
 let deferredPrompt = null;
-const installBtn = document.createElement('button');
-installBtn.textContent = '⬇ Install app';
-installBtn.style.cssText = 'position:fixed;top:52px;right:14px;z-index:40;display:none;font-size:12px;padding:8px 12px;box-shadow:0 4px 14px rgba(0,0,0,.4);';
-document.body.appendChild(installBtn);
-
 window.addEventListener('beforeinstallprompt', (e) => {
-  e.preventDefault();
-  deferredPrompt = e;
-  installBtn.style.display = 'block';
-});
-installBtn.addEventListener('click', async () => {
-  if (!deferredPrompt) return;
-  installBtn.style.display = 'none';
-  deferredPrompt.prompt();
-  await deferredPrompt.userChoice;
-  deferredPrompt = null;
-});
-window.addEventListener('appinstalled', () => {
-  installBtn.style.display = 'none';
+  e.preventDefault(); deferredPrompt = e;
+  const b = document.createElement('button');
+  b.textContent = '⬇';
+  b.title = 'Install app';
+  b.onclick = async () => {
+    if(!deferredPrompt) return;
+    b.remove(); deferredPrompt.prompt();
+    await deferredPrompt.userChoice; deferredPrompt = null;
+  };
+  document.querySelector('.topbar').appendChild(b);
 });
 </script>
 </body>

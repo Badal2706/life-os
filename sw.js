@@ -1,10 +1,13 @@
-const CACHE_NAME = 'routine-goals-v1';
+const CACHE_NAME = 'life-os-v7';
 const ASSETS = [
   './',
   './index.html',
   './manifest.json',
   './icons/icon-192.png',
-  './icons/icon-512.png'
+  './icons/icon-512.png',
+  './icons/apple-icon.png',
+  './icons/favicon.png',
+  './icons/favicon-32.png'
 ];
 
 self.addEventListener('install', (event) => {
