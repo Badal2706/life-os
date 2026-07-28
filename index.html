@@ -1,0 +1,592 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="theme-color" content="#6C5CE7">
+<title>Routine & Goals</title>
+<link rel="manifest" href="manifest.json">
+<link rel="icon" href="icons/icon-192.png">
+<link rel="apple-touch-icon" href="icons/icon-192.png">
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
+<style>
+  :root{
+    --bg:#0f1020; --card:#1a1b32; --card2:#20213e; --accent:#6C5CE7; --accent2:#00d1a0;
+    --text:#f1f1f8; --muted:#9a9bc0; --danger:#ff6b6b; --radius:16px;
+  }
+  *{box-sizing:border-box; -webkit-tap-highlight-color:transparent;}
+  html,body{margin:0;padding:0;height:100%;background:var(--bg);color:var(--text);
+    font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;overscroll-behavior:none;}
+  #app{max-width:480px;margin:0 auto;padding:16px 16px 90px;min-height:100vh;}
+  h1{font-size:22px;margin:8px 0 2px;}
+  .sub{color:var(--muted);font-size:13px;margin-bottom:18px;}
+  .card{background:var(--card);border-radius:var(--radius);padding:14px;margin-bottom:12px;}
+  .row{display:flex;align-items:center;gap:10px;}
+  .between{justify-content:space-between;}
+  .tabbar{position:fixed;bottom:0;left:0;right:0;background:var(--card2);
+    display:flex;justify-content:space-around;padding:8px 4px calc(8px + env(safe-area-inset-bottom));
+    max-width:480px;margin:0 auto;box-shadow:0 -2px 12px rgba(0,0,0,.3);}
+  .tab{flex:1;text-align:center;padding:8px 4px;border-radius:12px;color:var(--muted);
+    font-size:11px;cursor:pointer;user-select:none;}
+  .tab.active{color:var(--accent2);background:rgba(0,209,160,.12);}
+  .tab .ic{font-size:20px;display:block;margin-bottom:2px;}
+  .view{display:none;}
+  .view.active{display:block;animation:fade .2s ease;}
+  @keyframes fade{from{opacity:0;transform:translateY(4px);}to{opacity:1;transform:translateY(0);}}
+  input,textarea,select{background:var(--card2);border:1px solid #33345a;color:var(--text);
+    border-radius:10px;padding:10px 12px;font-size:15px;width:100%;}
+  input:focus,textarea:focus{outline:2px solid var(--accent);}
+  button{border:none;border-radius:12px;padding:10px 14px;font-size:14px;font-weight:600;
+    cursor:pointer;background:var(--accent);color:white;}
+  button.ghost{background:transparent;color:var(--accent2);padding:6px 8px;font-weight:500;}
+  button.danger{background:transparent;color:var(--danger);padding:6px;font-weight:500;font-size:13px;}
+  button.small{padding:6px 10px;font-size:13px;}
+  .fab-row{display:flex;gap:8px;margin-bottom:14px;}
+  .checkitem{display:flex;align-items:center;gap:12px;padding:10px 4px;border-bottom:1px solid #292a4a;}
+  .checkitem:last-child{border-bottom:none;}
+  .checkbox{width:26px;height:26px;border-radius:8px;border:2px solid var(--accent);flex-shrink:0;
+    display:flex;align-items:center;justify-content:center;font-size:15px;}
+  .checkbox.done{background:var(--accent2);border-color:var(--accent2);color:#0f1020;}
+  .item-name{flex:1;font-size:15px;}
+  .item-name.done{text-decoration:line-through;color:var(--muted);}
+  .streak-badge{font-size:11px;color:#ffb454;background:rgba(255,180,84,.12);padding:3px 8px;border-radius:20px;white-space:nowrap;}
+  .goal-title{font-weight:600;font-size:15px;}
+  .goal-meta{font-size:12px;color:var(--muted);margin-top:2px;}
+  .progress-bar{height:8px;background:#292a4a;border-radius:6px;overflow:hidden;margin-top:8px;}
+  .progress-fill{height:100%;background:linear-gradient(90deg,var(--accent),var(--accent2));border-radius:6px;transition:width .3s;}
+  .milestone{display:flex;align-items:center;gap:8px;padding:6px 0;font-size:13px;}
+  .milestone .checkbox{width:20px;height:20px;font-size:12px;}
+  .empty{color:var(--muted);text-align:center;padding:30px 10px;font-size:14px;}
+  .modal-bg{position:fixed;inset:0;background:rgba(0,0,0,.55);display:none;align-items:flex-end;justify-content:center;z-index:50;}
+  .modal-bg.open{display:flex;}
+  .modal{background:var(--card2);width:100%;max-width:480px;border-radius:20px 20px 0 0;
+    padding:20px;padding-bottom:calc(20px + env(safe-area-inset-bottom));}
+  .modal h3{margin-top:0;}
+  .field{margin-bottom:12px;}
+  .field label{font-size:12px;color:var(--muted);display:block;margin-bottom:5px;}
+  .modal-actions{display:flex;gap:10px;margin-top:6px;}
+  .modal-actions button{flex:1;}
+  .stat-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;}
+  .stat-card{background:var(--card);border-radius:14px;padding:16px;text-align:center;}
+  .stat-num{font-size:26px;font-weight:700;color:var(--accent2);}
+  .stat-label{font-size:12px;color:var(--muted);margin-top:4px;}
+  .heat{display:grid;grid-template-columns:repeat(7,1fr);gap:4px;margin-top:8px;}
+  .heat div{aspect-ratio:1;border-radius:4px;background:#292a4a;}
+  .heat div.on{background:var(--accent2);}
+  .section-label{font-size:12px;text-transform:uppercase;letter-spacing:.5px;color:var(--muted);margin:18px 0 8px;}
+  .milestone-add{display:flex;gap:6px;margin-top:8px;}
+  .milestone-add input{flex:1;}
+  .type-toggle{display:flex;gap:8px;margin-bottom:14px;}
+  .type-toggle button{flex:1;background:var(--card2);color:var(--muted);}
+  .type-toggle button.active{background:var(--accent);color:white;}
+</style>
+</head>
+<body>
+<div id="app">
+
+  <div id="syncStatus" style="position:fixed;top:10px;left:10px;z-index:40;font-size:11px;
+    color:var(--muted);background:var(--card2);padding:5px 10px;border-radius:20px;">Connecting…</div>
+  <button onclick="openSyncModal()" style="position:fixed;top:8px;right:14px;z-index:40;font-size:12px;
+    padding:8px 12px;background:var(--card2);color:var(--muted);">⚙ Sync</button>
+
+  <div id="view-today" class="view active">
+    <h1>Today</h1>
+    <div class="sub" id="todayDate"></div>
+    <div class="fab-row">
+      <button onclick="openRoutineModal()">+ Add routine item</button>
+    </div>
+    <div class="card" id="routineList"></div>
+  </div>
+
+  <div id="view-goals" class="view">
+    <h1>Goals</h1>
+    <div class="sub">Short-term & long-term, all in one place</div>
+    <div class="fab-row">
+      <button onclick="openGoalModal()">+ Add goal</button>
+    </div>
+    <div class="section-label">Short-term</div>
+    <div id="shortGoalList"></div>
+    <div class="section-label">Long-term</div>
+    <div id="longGoalList"></div>
+  </div>
+
+  <div id="view-stats" class="view">
+    <h1>Stats</h1>
+    <div class="sub">Your consistency at a glance</div>
+    <div class="stat-grid" id="statGrid"></div>
+    <div class="section-label">Routine streaks</div>
+    <div id="streakList"></div>
+  </div>
+
+</div>
+
+<div class="tabbar">
+  <div class="tab active" data-view="today" onclick="switchView('today')"><span class="ic">✓</span>Today</div>
+  <div class="tab" data-view="goals" onclick="switchView('goals')"><span class="ic">🎯</span>Goals</div>
+  <div class="tab" data-view="stats" onclick="switchView('stats')"><span class="ic">📊</span>Stats</div>
+</div>
+
+<!-- Routine modal -->
+<div class="modal-bg" id="routineModalBg">
+  <div class="modal">
+    <h3>New routine item</h3>
+    <div class="field">
+      <label>Name</label>
+      <input id="routineNameInput" placeholder="e.g. Morning workout" maxlength="60">
+    </div>
+    <div class="modal-actions">
+      <button class="ghost" onclick="closeModal('routineModalBg')" style="background:var(--card);">Cancel</button>
+      <button onclick="saveRoutine()">Save</button>
+    </div>
+  </div>
+</div>
+
+<!-- Goal modal -->
+<div class="modal-bg" id="goalModalBg">
+  <div class="modal">
+    <h3>New goal</h3>
+    <div class="type-toggle">
+      <button id="btnShort" class="active" onclick="setGoalType('short')">Short-term</button>
+      <button id="btnLong" onclick="setGoalType('long')">Long-term</button>
+    </div>
+    <div class="field">
+      <label>Title</label>
+      <input id="goalTitleInput" placeholder="e.g. Finish reading a book" maxlength="80">
+    </div>
+    <div class="field" id="deadlineField">
+      <label>Target date</label>
+      <input id="goalDeadlineInput" type="date">
+    </div>
+    <div class="modal-actions">
+      <button class="ghost" onclick="closeModal('goalModalBg')" style="background:var(--card);">Cancel</button>
+      <button onclick="saveGoal()">Save</button>
+    </div>
+  </div>
+</div>
+
+<!-- Milestone add modal -->
+<div class="modal-bg" id="milestoneModalBg">
+  <div class="modal">
+    <h3>Add milestone</h3>
+    <div class="field">
+      <label>Milestone</label>
+      <input id="milestoneInput" placeholder="e.g. Read chapters 1-3" maxlength="60">
+    </div>
+    <div class="modal-actions">
+      <button class="ghost" onclick="closeModal('milestoneModalBg')" style="background:var(--card);">Cancel</button>
+      <button onclick="saveMilestone()">Add</button>
+    </div>
+  </div>
+</div>
+
+<!-- Sync code modal -->
+<div class="modal-bg" id="syncModalBg">
+  <div class="modal">
+    <h3>Sync across devices</h3>
+    <p style="color:var(--muted);font-size:13px;margin-top:-6px;">
+      Enter the same private code on every device to see the same data. Anyone who knows this code can
+      see and edit your data, so treat it like a password — don't share it.
+    </p>
+    <div class="field">
+      <label>Sync code</label>
+      <input id="syncCodeInput" placeholder="e.g. a private phrase only you know" autocapitalize="off" autocorrect="off">
+    </div>
+    <div class="modal-actions">
+      <button class="ghost" onclick="closeModal('syncModalBg')" style="background:var(--card);">Cancel</button>
+      <button onclick="saveSyncCode()">Connect</button>
+    </div>
+  </div>
+</div>
+
+<script>
+// =========================================================
+// FIREBASE CONFIG — replace with the values from your own
+// Firebase project (Project settings > General > Your apps).
+// See SETUP.md for step-by-step instructions.
+// =========================================================
+const firebaseConfig = {
+  apiKey: "YOUR_API_KEY",
+  authDomain: "YOUR_PROJECT_ID.firebaseapp.com",
+  projectId: "YOUR_PROJECT_ID",
+  storageBucket: "YOUR_PROJECT_ID.appspot.com",
+  messagingSenderId: "YOUR_SENDER_ID",
+  appId: "YOUR_APP_ID"
+};
+
+let db = null;
+let firebaseReady = false;
+try{
+  firebase.initializeApp(firebaseConfig);
+  db = firebase.firestore();
+  db.enablePersistence({synchronizeTabs:true}).catch(()=>{});
+  firebaseReady = true;
+}catch(e){
+  console.warn('Firebase not configured yet:', e.message);
+}
+
+const LOCAL_STORE_KEY = 'routineGoalsAppData_v1';
+const SYNC_CODE_KEY = 'routineGoalsSyncCode_v1';
+let data = { routines: [], goals: [] };
+let unsubscribeSnapshot = null;
+let syncCode = localStorage.getItem(SYNC_CODE_KEY) || '';
+
+// Turn the private sync code into a safe Firestore document id.
+async function codeToDocId(code){
+  const enc = new TextEncoder().encode(code.trim().toLowerCase());
+  const hashBuf = await crypto.subtle.digest('SHA-256', enc);
+  return Array.from(new Uint8Array(hashBuf)).map(b=>b.toString(16).padStart(2,'0')).join('');
+}
+
+function setSyncStatus(text, ok){
+  const el = document.getElementById('syncStatus');
+  if(!el) return;
+  el.textContent = text;
+  el.style.color = ok ? 'var(--accent2)' : 'var(--muted)';
+}
+
+async function connectSync(code){
+  if(!firebaseReady || !db){
+    setSyncStatus('Offline mode (no sync configured)', false);
+    loadLocalOnly();
+    return;
+  }
+  if(unsubscribeSnapshot){ unsubscribeSnapshot(); unsubscribeSnapshot = null; }
+  if(!code){
+    setSyncStatus('Not synced — tap ⚙ Sync to connect', false);
+    loadLocalOnly();
+    return;
+  }
+  setSyncStatus('Connecting…', false);
+  const docId = await codeToDocId(code);
+  const docRef = db.collection('routineGoalsApps').doc(docId);
+  unsubscribeSnapshot = docRef.onSnapshot((snap)=>{
+    if(snap.exists){
+      data = snap.data();
+    } else {
+      data = { routines: [], goals: [] };
+      docRef.set(data).catch(()=>{});
+    }
+    localStorage.setItem(LOCAL_STORE_KEY, JSON.stringify(data));
+    setSyncStatus('Synced ✓', true);
+    renderRoutines();
+    renderGoals();
+    if(document.getElementById('view-stats').classList.contains('active')) renderStats();
+  }, (err)=>{
+    console.warn('sync error', err);
+    setSyncStatus('Sync error — using local copy', false);
+    loadLocalOnly();
+  });
+}
+
+function loadLocalOnly(){
+  try{
+    const raw = localStorage.getItem(LOCAL_STORE_KEY);
+    data = raw ? JSON.parse(raw) : { routines: [], goals: [] };
+  }catch(e){
+    data = { routines: [], goals: [] };
+  }
+  renderRoutines();
+  renderGoals();
+}
+
+async function saveData(){
+  localStorage.setItem(LOCAL_STORE_KEY, JSON.stringify(data));
+  if(firebaseReady && db && syncCode){
+    const docId = await codeToDocId(syncCode);
+    db.collection('routineGoalsApps').doc(docId).set(data).catch((e)=>{
+      console.warn('save failed', e);
+    });
+  }
+}
+
+function openSyncModal(){
+  document.getElementById('syncCodeInput').value = syncCode;
+  openModal('syncModalBg');
+}
+async function saveSyncCode(){
+  const code = document.getElementById('syncCodeInput').value.trim();
+  if(!code) return;
+  syncCode = code;
+  localStorage.setItem(SYNC_CODE_KEY, code);
+  closeModal('syncModalBg');
+  await connectSync(code);
+}
+
+function todayStr(){
+  const d = new Date();
+  return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');
+}
+function uid(){ return Date.now().toString(36)+Math.random().toString(36).slice(2,7); }
+
+// ---------- View switching ----------
+function switchView(v){
+  document.querySelectorAll('.view').forEach(el=>el.classList.remove('active'));
+  document.querySelectorAll('.tab').forEach(el=>el.classList.remove('active'));
+  document.getElementById('view-'+v).classList.add('active');
+  document.querySelector('.tab[data-view="'+v+'"]').classList.add('active');
+  if(v==='stats') renderStats();
+  if(v==='goals') renderGoals();
+  if(v==='today') renderRoutines();
+}
+
+// ---------- Modals ----------
+function openModal(id){ document.getElementById(id).classList.add('open'); }
+function closeModal(id){ document.getElementById(id).classList.remove('open'); }
+
+function openRoutineModal(){
+  document.getElementById('routineNameInput').value='';
+  openModal('routineModalBg');
+}
+function saveRoutine(){
+  const name = document.getElementById('routineNameInput').value.trim();
+  if(!name) return;
+  data.routines.push({id:uid(), name, history:{}});
+  saveData();
+  closeModal('routineModalBg');
+  renderRoutines();
+}
+
+let currentGoalType = 'short';
+function setGoalType(t){
+  currentGoalType = t;
+  document.getElementById('btnShort').classList.toggle('active', t==='short');
+  document.getElementById('btnLong').classList.toggle('active', t==='long');
+  document.getElementById('deadlineField').style.display = t==='short' ? 'block' : 'none';
+}
+function openGoalModal(){
+  document.getElementById('goalTitleInput').value='';
+  document.getElementById('goalDeadlineInput').value='';
+  setGoalType('short');
+  openModal('goalModalBg');
+}
+function saveGoal(){
+  const title = document.getElementById('goalTitleInput').value.trim();
+  if(!title) return;
+  const deadline = document.getElementById('goalDeadlineInput').value;
+  data.goals.push({
+    id:uid(), title, type: currentGoalType,
+    deadline: currentGoalType==='short' ? deadline : '',
+    milestones: [], created: todayStr()
+  });
+  saveData();
+  closeModal('goalModalBg');
+  renderGoals();
+}
+
+let milestoneTargetGoalId = null;
+function openMilestoneModal(goalId){
+  milestoneTargetGoalId = goalId;
+  document.getElementById('milestoneInput').value='';
+  openModal('milestoneModalBg');
+}
+function saveMilestone(){
+  const text = document.getElementById('milestoneInput').value.trim();
+  if(!text) return;
+  const goal = data.goals.find(g=>g.id===milestoneTargetGoalId);
+  if(goal){ goal.milestones.push({id:uid(), text, done:false}); saveData(); }
+  closeModal('milestoneModalBg');
+  renderGoals();
+}
+
+// ---------- Routines (Today view) ----------
+function computeStreak(routine){
+  let streak = 0;
+  let d = new Date();
+  // if not done today, start checking from yesterday
+  if(!routine.history[todayStr()]) d.setDate(d.getDate()-1);
+  while(true){
+    const key = d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');
+    if(routine.history[key]){ streak++; d.setDate(d.getDate()-1); }
+    else break;
+  }
+  return streak;
+}
+
+function toggleRoutine(id){
+  const r = data.routines.find(x=>x.id===id);
+  const t = todayStr();
+  if(r.history[t]) delete r.history[t];
+  else r.history[t] = true;
+  saveData();
+  renderRoutines();
+}
+function deleteRoutine(id){
+  data.routines = data.routines.filter(r=>r.id!==id);
+  saveData();
+  renderRoutines();
+}
+
+function renderRoutines(){
+  document.getElementById('todayDate').textContent = new Date().toLocaleDateString(undefined,{weekday:'long', month:'long', day:'numeric'});
+  const list = document.getElementById('routineList');
+  if(data.routines.length===0){
+    list.innerHTML = '<div class="empty">No routine items yet.<br>Add your first daily habit above.</div>';
+    return;
+  }
+  const t = todayStr();
+  list.innerHTML = data.routines.map(r=>{
+    const done = !!r.history[t];
+    const streak = computeStreak(r);
+    return `<div class="checkitem">
+      <div class="checkbox ${done?'done':''}" onclick="toggleRoutine('${r.id}')">${done?'✓':''}</div>
+      <div class="item-name ${done?'done':''}">${escapeHtml(r.name)}</div>
+      ${streak>0?`<div class="streak-badge">🔥 ${streak}</div>`:''}
+      <button class="danger" onclick="deleteRoutine('${r.id}')">✕</button>
+    </div>`;
+  }).join('');
+}
+
+// ---------- Goals ----------
+function toggleMilestone(goalId, msId){
+  const g = data.goals.find(x=>x.id===goalId);
+  const m = g.milestones.find(x=>x.id===msId);
+  m.done = !m.done;
+  saveData();
+  renderGoals();
+}
+function deleteGoal(id){
+  data.goals = data.goals.filter(g=>g.id!==id);
+  saveData();
+  renderGoals();
+}
+function goalProgress(g){
+  if(g.milestones.length===0) return 0;
+  const done = g.milestones.filter(m=>m.done).length;
+  return Math.round(done/g.milestones.length*100);
+}
+function daysLeft(deadline){
+  if(!deadline) return null;
+  const d = new Date(deadline+'T00:00:00');
+  const now = new Date(todayStr()+'T00:00:00');
+  return Math.round((d-now)/86400000);
+}
+function renderGoalCard(g){
+  const pct = goalProgress(g);
+  const dl = g.type==='short' ? daysLeft(g.deadline) : null;
+  let meta = '';
+  if(g.type==='short' && g.deadline){
+    meta = dl===null?'' : dl>0 ? `${dl} day${dl===1?'':'s'} left` : dl===0 ? 'Due today' : `${Math.abs(dl)} day${Math.abs(dl)===1?'':'s'} overdue`;
+  }
+  return `<div class="card">
+    <div class="row between">
+      <div>
+        <div class="goal-title">${escapeHtml(g.title)}</div>
+        ${meta?`<div class="goal-meta">${meta}</div>`:''}
+      </div>
+      <button class="danger" onclick="deleteGoal('${g.id}')">✕</button>
+    </div>
+    <div class="progress-bar"><div class="progress-fill" style="width:${pct}%"></div></div>
+    <div class="goal-meta">${pct}% complete · ${g.milestones.filter(m=>m.done).length}/${g.milestones.length} milestones</div>
+    ${g.milestones.map(m=>`<div class="milestone">
+      <div class="checkbox ${m.done?'done':''}" onclick="toggleMilestone('${g.id}','${m.id}')">${m.done?'✓':''}</div>
+      <div style="${m.done?'text-decoration:line-through;color:var(--muted);':''}">${escapeHtml(m.text)}</div>
+    </div>`).join('')}
+    <div class="milestone-add">
+      <button class="small ghost" style="background:var(--card2);width:100%;" onclick="openMilestoneModal('${g.id}')">+ Add milestone</button>
+    </div>
+  </div>`;
+}
+function renderGoals(){
+  const shorts = data.goals.filter(g=>g.type==='short');
+  const longs = data.goals.filter(g=>g.type==='long');
+  document.getElementById('shortGoalList').innerHTML = shorts.length
+    ? shorts.map(renderGoalCard).join('')
+    : '<div class="empty">No short-term goals yet.</div>';
+  document.getElementById('longGoalList').innerHTML = longs.length
+    ? longs.map(renderGoalCard).join('')
+    : '<div class="empty">No long-term goals yet.</div>';
+}
+
+// ---------- Stats ----------
+function renderStats(){
+  const totalRoutines = data.routines.length;
+  const t = todayStr();
+  const doneToday = data.routines.filter(r=>r.history[t]).length;
+  const totalGoals = data.goals.length;
+  const completedGoals = data.goals.filter(g=>g.milestones.length>0 && g.milestones.every(m=>m.done)).length;
+  const bestStreak = data.routines.reduce((max,r)=>Math.max(max, computeStreak(r)),0);
+
+  document.getElementById('statGrid').innerHTML = `
+    <div class="stat-card"><div class="stat-num">${doneToday}/${totalRoutines}</div><div class="stat-label">Done today</div></div>
+    <div class="stat-card"><div class="stat-num">${bestStreak}</div><div class="stat-label">Best streak (days)</div></div>
+    <div class="stat-card"><div class="stat-num">${totalGoals}</div><div class="stat-label">Active goals</div></div>
+    <div class="stat-card"><div class="stat-num">${completedGoals}</div><div class="stat-label">Goals completed</div></div>
+  `;
+
+  const streakList = document.getElementById('streakList');
+  if(data.routines.length===0){
+    streakList.innerHTML = '<div class="empty">Add routine items to see streaks here.</div>';
+    return;
+  }
+  streakList.innerHTML = data.routines.map(r=>{
+    const streak = computeStreak(r);
+    // last 7 days heat
+    const cells = [];
+    for(let i=6;i>=0;i--){
+      const d = new Date();
+      d.setDate(d.getDate()-i);
+      const key = d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');
+      cells.push(`<div class="${r.history[key]?'on':''}"></div>`);
+    }
+    return `<div class="card">
+      <div class="row between">
+        <div class="goal-title">${escapeHtml(r.name)}</div>
+        <div class="streak-badge">🔥 ${streak}</div>
+      </div>
+      <div class="heat">${cells.join('')}</div>
+    </div>`;
+  }).join('');
+}
+
+function escapeHtml(s){
+  const d = document.createElement('div');
+  d.textContent = s;
+  return d.innerHTML;
+}
+
+// init
+renderRoutines();
+renderGoals();
+if(syncCode){
+  connectSync(syncCode);
+} else {
+  setSyncStatus('Not synced — tap ⚙ Sync to connect', false);
+  loadLocalOnly();
+  setTimeout(openSyncModal, 400);
+}
+
+// ---------- PWA install + service worker ----------
+if ('serviceWorker' in navigator) {
+  window.addEventListener('load', () => {
+    navigator.serviceWorker.register('sw.js').catch(()=>{});
+  });
+}
+
+let deferredPrompt = null;
+const installBtn = document.createElement('button');
+installBtn.textContent = '⬇ Install app';
+installBtn.style.cssText = 'position:fixed;top:52px;right:14px;z-index:40;display:none;font-size:12px;padding:8px 12px;box-shadow:0 4px 14px rgba(0,0,0,.4);';
+document.body.appendChild(installBtn);
+
+window.addEventListener('beforeinstallprompt', (e) => {
+  e.preventDefault();
+  deferredPrompt = e;
+  installBtn.style.display = 'block';
+});
+installBtn.addEventListener('click', async () => {
+  if (!deferredPrompt) return;
+  installBtn.style.display = 'none';
+  deferredPrompt.prompt();
+  await deferredPrompt.userChoice;
+  deferredPrompt = null;
+});
+window.addEventListener('appinstalled', () => {
+  installBtn.style.display = 'none';
+});
+</script>
+</body>
+</html>
