@@ -307,6 +307,26 @@
   .section-label{font-size:11.5px;text-transform:uppercase;letter-spacing:.6px;color:rgba(255,255,255,.7);margin:16px 0 8px;}
   .hint{font-size:11px;color:var(--muted);margin:-4px 0 10px;}
 
+  /* ---------- compact task rows ---------- */
+  .task-item{padding:9px 2px;border-bottom:1px solid rgba(255,255,255,.14);}
+  .task-item:last-child{border-bottom:none;}
+  .task-top{display:flex;align-items:center;gap:8px;min-width:0;}
+  .task-text{flex:1;min-width:0;font-size:14px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+  .task-text.done{text-decoration:line-through;color:var(--muted);}
+  .task-bottom{display:flex;align-items:center;gap:6px;margin:6px 0 0 36px;flex-wrap:wrap;}
+  .chip{font-size:11px;padding:4px 9px;border-radius:20px;background:rgba(255,255,255,.14);
+    border:1px solid rgba(255,255,255,.22);color:#eafff7;font-weight:600;cursor:pointer;}
+  body.light .chip{color:#4a2ba0;background:rgba(120,80,220,.1);border-color:rgba(120,80,220,.25);}
+  /* avatar */
+  .avatar-btn{width:34px;height:34px;border-radius:50%;overflow:hidden;padding:0 !important;
+    display:flex;align-items:center;justify-content:center;}
+  .avatar-btn img{width:100%;height:100%;object-fit:cover;}
+  .avatar-big{width:72px;height:72px;border-radius:50%;object-fit:cover;border:2px solid rgba(255,255,255,.5);}
+  .avatar-row{display:flex;align-items:center;gap:14px;margin-bottom:12px;}
+  /* goal edit logs */
+  .log-edit-row{display:flex;align-items:center;gap:8px;padding:6px 0;border-bottom:1px dashed rgba(255,255,255,.15);}
+  .log-edit-row input{width:100px;padding:7px 10px;font-size:13px;}
+  .log-edit-row .when{flex:1;font-size:11px;color:var(--muted);}
   /* ---------- lock screen ---------- */
   #lockScreen{position:fixed;inset:0;z-index:100;display:none;flex-direction:column;
     align-items:center;justify-content:center;gap:18px;
@@ -365,7 +385,7 @@
   <span class="brand">Life OS</span>
   <span class="status" id="syncStatus">Connecting…</span>
   <button class="today-jump" onclick="goToToday()">◉ Today</button>
-  <button onclick="openProfileModal()" title="Profile & settings">👤</button>
+  <button class="avatar-btn" id="topAvatarBtn" onclick="openProfileModal()" title="Profile & settings">👤</button>
 </div>
 
 <div id="app">
@@ -618,6 +638,52 @@
   </div>
 </div></div>
 
+<!-- Task time modal -->
+<div class="modal-bg" id="taskTimeModalBg"><div class="modal">
+  <h3>🕒 Time for this task</h3>
+  <div class="kind-pick" style="grid-template-columns:repeat(4,1fr);">
+    <button id="tt-none" onclick="setTimeType('none')">None</button>
+    <button id="tt-at" onclick="setTimeType('at')">At time</button>
+    <button id="tt-range" onclick="setTimeType('range')">Range</button>
+    <button id="tt-dur" onclick="setTimeType('dur')">Duration</button>
+  </div>
+  <div class="field" id="ttAtField" style="display:none;">
+    <label>At what time?</label>
+    <input id="ttAtInput" type="time">
+  </div>
+  <div class="field-row" id="ttRangeField" style="display:none;">
+    <div class="field"><label>From</label><input id="ttFromInput" type="time"></div>
+    <div class="field"><label>To</label><input id="ttToInput" type="time"></div>
+  </div>
+  <div class="field-row" id="ttDurField" style="display:none;">
+    <div class="field"><label>Hours</label><input id="ttHInput" type="number" min="0" placeholder="0"></div>
+    <div class="field"><label>Minutes</label><input id="ttMInput" type="number" min="0" max="59" placeholder="0"></div>
+  </div>
+  <div class="modal-actions">
+    <button class="ghost" onclick="closeModal('taskTimeModalBg')">Cancel</button>
+    <button onclick="saveTaskTime()">Save</button>
+  </div>
+</div></div>
+
+<!-- Goal edit modal -->
+<div class="modal-bg" id="goalEditModalBg"><div class="modal">
+  <h3>Edit goal</h3>
+  <div class="field"><label>Name</label>
+    <input id="geTitleInput" maxlength="80"></div>
+  <div class="field" id="geTargetField"><label id="geTargetLabel">Target</label>
+    <input id="geTargetInput" type="number" inputmode="decimal"></div>
+  <div class="field" id="geUnitField" style="display:none;"><label>Unit name</label>
+    <input id="geUnitInput" maxlength="20"></div>
+  <div class="field"><label>Deadline (optional)</label>
+    <input id="geDeadlineInput" type="date"></div>
+  <div class="section-label">Progress log — edit values or delete entries</div>
+  <div id="geLogList"></div>
+  <div class="modal-actions">
+    <button class="ghost" onclick="closeModal('goalEditModalBg')">Cancel</button>
+    <button onclick="saveGoalEdit()">Save changes</button>
+  </div>
+</div></div>
+
 <!-- Reward modal -->
 <div class="modal-bg" id="rewardModalBg"><div class="modal">
   <h3>New reward</h3>
@@ -638,6 +704,13 @@
 <!-- Profile modal -->
 <div class="modal-bg" id="profileModalBg"><div class="modal">
   <h3>👤 Profile & settings</h3>
+  <div class="avatar-row">
+    <img class="avatar-big" id="avatarPreview" src="icons/icon-192.png" alt="">
+    <div>
+      <button class="ghost small" onclick="document.getElementById('avatarInput').click()">📷 Set profile photo</button>
+      <input type="file" id="avatarInput" accept="image/*" style="display:none;" onchange="uploadAvatar(event)">
+    </div>
+  </div>
   <div class="field"><label>Your name</label>
     <input id="profNameInput" placeholder="e.g. Alex" maxlength="50"></div>
   <div class="field-row">
@@ -840,6 +913,7 @@ function migrateRoutine(r){
     dayHistory: r.dayHistory || [{from:'2000-01-01', days: []}],
     startedOn: r.startedOn || (r.createdAt ? r.createdAt.slice(0,10) : '2000-01-01'),
     endedOn: r.endedOn || null,
+    gaps: r.gaps || [],
     createdAt: r.createdAt || nowIso()
   };
 }
@@ -869,6 +943,8 @@ function isScheduled(r, dateStr){
   if(dateStr < r.startedOn) return false;
   if(r.endedOn && dateStr >= r.endedOn) return false;
   if(r.skipDates[dateStr]) return false;
+  // gap = period when the routine was ended before being reconnected — stays empty
+  if((r.gaps||[]).some(g=>dateStr >= g.from && dateStr < g.to)) return false;
   const days = daysFor(r, dateStr);
   if(days.length === 0) return true;
   return days.includes(new Date(dateStr+'T00:00:00').getDay());
@@ -1146,7 +1222,7 @@ function renderView(v){
   if(v==='money') renderMoney();
   if(v==='diary') renderDiary();
 }
-function renderAll(){ renderView(currentView); }
+function renderAll(){ renderView(currentView); if(typeof updateTopAvatar==='function') updateTopAvatar(); }
 function goToToday(){
   viewDate = todayStr();
   renderAll();
@@ -1308,22 +1384,29 @@ function renderMonthGrid(){
   const y = base.getFullYear(), m = base.getMonth();
   document.getElementById('monthGridLabel').textContent =
     base.toLocaleDateString('en-GB',{month:'long', year:'numeric'});
-  if(data.routines.length===0){
-    el.innerHTML = '<div class="empty">Add routine items to see your monthly grid.</div>'; return;
-  }
   const daysInMonth = new Date(y, m+1, 0).getDate();
+  const monthKeys = [];
+  for(let d=1; d<=daysInMonth; d++)
+    monthKeys.push(`${y}-${String(m+1).padStart(2,'0')}-${String(d).padStart(2,'0')}`);
+  // only show routines that actually appear in this month (done or scheduled at least once),
+  // sorted by time-of-day block like the Routine page
+  const visible = data.routines
+    .filter(r=>monthKeys.some(k=>r.history[k] || isScheduled(r,k)))
+    .sort((a,b)=>a.block - b.block);
+  if(visible.length===0){
+    el.innerHTML = '<div class="empty">Nothing scheduled or done in this month.</div>'; return;
+  }
   let html = '<table class="grid"><thead><tr><th style="text-align:left;">Habit</th>';
   for(let d=1; d<=daysInMonth; d++) html += `<th>${d}</th>`;
   html += '<th>✓</th></tr></thead><tbody>';
-  data.routines.forEach(r=>{
+  visible.forEach(r=>{
     let count = 0, row = '';
-    for(let d=1; d<=daysInMonth; d++){
-      const key = `${y}-${String(m+1).padStart(2,'0')}-${String(d).padStart(2,'0')}`;
+    monthKeys.forEach(key=>{
       const on = !!r.history[key];
       const sched = isScheduled(r, key);
       if(on) count++;
       row += `<td><div class="cell ${on?'on':(sched?'':'off')}"></div></td>`;
-    }
+    });
     html += `<tr><td class="name">${escapeHtml(r.name)}</td>${row}<td style="color:var(--accent2);font-weight:700;">${count}</td></tr>`;
   });
   el.innerHTML = html + '</tbody></table>';
@@ -1454,11 +1537,23 @@ function saveRoutine(){
       r.dayHistory.sort((a,b)=>a.from.localeCompare(b.from));
     }
   } else {
-    data.routines.push({
-      id:uid(), name, block, history:{}, skipDates:{},
-      dayHistory:[{from: todayStr(), days: [...chipDays]}],
-      startedOn: todayStr(), endedOn: null, createdAt: nowIso()
-    });
+    // same name as an ended routine? offer to reconnect its history
+    const old = data.routines.find(r=>r.endedOn && r.name.trim().toLowerCase() === name.toLowerCase());
+    if(old && confirm(`You had "${old.name}" before (ended ${ddmmyyyy(old.endedOn)}).\n\nConnect with it and continue the same history? The days in between stay empty — not marked as missed.`)){
+      old.gaps = old.gaps || [];
+      old.gaps.push({from: old.endedOn, to: todayStr()});
+      old.endedOn = null;
+      old.block = block;
+      old.dayHistory = old.dayHistory.filter(e=>e.from !== todayStr());
+      old.dayHistory.push({from: todayStr(), days: [...chipDays]});
+      old.dayHistory.sort((a,b)=>a.from.localeCompare(b.from));
+    } else {
+      data.routines.push({
+        id:uid(), name, block, history:{}, skipDates:{},
+        dayHistory:[{from: todayStr(), days: [...chipDays]}],
+        startedOn: todayStr(), endedOn: null, gaps: [], createdAt: nowIso()
+      });
+    }
   }
   saveData(); closeModal('routineModalBg'); renderRoutine();
 }
@@ -1515,7 +1610,6 @@ function renderRoutine(){
           </div>`;
         }).join('') + '</div>';
     }
-    main += '<div class="hint" style="margin-top:8px;">Tap a name to edit its days/time · ✕ removes it from this day only · drag ☰ to reorder</div>';
   }
   document.getElementById('routineTrack').innerHTML =
     sideDayCardRoutine(addDays(viewDate,-1), -1) +
@@ -1566,14 +1660,17 @@ function renderTasks(){
   const todays = data.tasks.filter(t=>t.date===viewDate);
   const main = todays.length === 0
     ? '<div class="empty">No tasks for this day.</div>'
-    : `<div id="taskListInner">` + todays.map(t=>`<div class="checkitem" data-id="${t.id}">
-        <span class="drag-handle">☰</span>
-        <div class="checkbox ${t.done?'done':''}" onclick="toggleTask('${t.id}')">${t.done?'✓':''}</div>
-        <div class="item-name ${t.done?'done':''}">${escapeHtml(t.text)}
-          <div class="item-time">${t.done && t.doneAt ? '✓ '+fmtDateTime(t.doneAt) : 'added '+fmtDateTime(t.createdAt)}</div>
+    : `<div id="taskListInner">` + todays.map(t=>`<div class="task-item" data-id="${t.id}">
+        <div class="task-top">
+          <span class="drag-handle">☰</span>
+          <div class="checkbox ${t.done?'done':''}" onclick="toggleTask('${t.id}')">${t.done?'✓':''}</div>
+          <div class="task-text ${t.done?'done':''}">${escapeHtml(t.text)}</div>
         </div>
-        ${!t.done?`<button class="ghost small" onclick="moveTaskToNextDay('${t.id}')">→ Tmrw</button>`:''}
-        <button class="danger" onclick="deleteTask('${t.id}')">✕</button>
+        <div class="task-bottom">
+          <button class="chip" onclick="openTaskTimeModal('${t.id}')">🕒 ${taskTimeLabel(t) || 'Add time'}</button>
+          ${!t.done?`<button class="chip" onclick="moveTaskToNextDay('${t.id}')">→ Tomorrow</button>`:''}
+          <button class="danger" onclick="deleteTask('${t.id}')">✕</button>
+        </div>
       </div>`).join('') + '</div>';
   document.getElementById('tasksTrack').innerHTML =
     sideDayCardTasks(addDays(viewDate,-1), -1) +
@@ -1582,6 +1679,89 @@ function renderTasks(){
   attachDrag(document.getElementById('taskListInner'), (ids)=>{
     applySubsetOrder(data.tasks, ids); saveData(); renderTasks();
   });
+}
+
+// ---------- task time (at / range / duration) ----------
+function fmt12(hm){
+  if(!hm) return '';
+  const [h,m] = hm.split(':').map(Number);
+  const ap = h>=12 ? 'PM' : 'AM';
+  const hh = h%12 === 0 ? 12 : h%12;
+  return hh+(m?':'+String(m).padStart(2,'0'):'')+' '+ap;
+}
+function taskTimeLabel(t){
+  const tm = t.time;
+  if(!tm || tm.type==='none') return '';
+  if(tm.type==='at') return fmt12(tm.at);
+  if(tm.type==='range') return fmt12(tm.from)+' – '+fmt12(tm.to);
+  if(tm.type==='dur'){
+    const h = Math.floor(tm.mins/60), m = tm.mins%60;
+    return (h?h+'h ':'')+(m?m+'m':'') || '0m';
+  }
+  return '';
+}
+let timeTaskId = null, timeType = 'none';
+function setTimeType(ty){
+  timeType = ty;
+  ['none','at','range','dur'].forEach(x=>{
+    document.getElementById('tt-'+x).classList.toggle('active', x===ty);
+  });
+  document.getElementById('ttAtField').style.display = ty==='at' ? 'block' : 'none';
+  document.getElementById('ttRangeField').style.display = ty==='range' ? 'flex' : 'none';
+  document.getElementById('ttDurField').style.display = ty==='dur' ? 'flex' : 'none';
+}
+function openTaskTimeModal(id){
+  timeTaskId = id;
+  const t = data.tasks.find(x=>x.id===id);
+  const tm = t.time || {type:'none'};
+  setTimeType(tm.type || 'none');
+  document.getElementById('ttAtInput').value = tm.at || '';
+  document.getElementById('ttFromInput').value = tm.from || '';
+  document.getElementById('ttToInput').value = tm.to || '';
+  document.getElementById('ttHInput').value = tm.mins ? Math.floor(tm.mins/60) : '';
+  document.getElementById('ttMInput').value = tm.mins ? tm.mins%60 : '';
+  openModal('taskTimeModalBg');
+}
+function saveTaskTime(){
+  const t = data.tasks.find(x=>x.id===timeTaskId);
+  if(!t) return;
+  if(timeType==='none'){ delete t.time; }
+  else if(timeType==='at'){
+    const at = document.getElementById('ttAtInput').value;
+    if(!at){ fieldError('ttAtInput','Pick a time'); return; }
+    t.time = {type:'at', at};
+  } else if(timeType==='range'){
+    const from = document.getElementById('ttFromInput').value;
+    const to = document.getElementById('ttToInput').value;
+    if(!from){ fieldError('ttFromInput','Pick a start time'); return; }
+    if(!to){ fieldError('ttToInput','Pick an end time'); return; }
+    t.time = {type:'range', from, to};
+  } else if(timeType==='dur'){
+    const h = parseInt(document.getElementById('ttHInput').value)||0;
+    const m = parseInt(document.getElementById('ttMInput').value)||0;
+    if(h===0 && m===0){ fieldError('ttHInput','Enter how long this will take'); return; }
+    t.time = {type:'dur', mins: h*60+m};
+  }
+  saveData(); closeModal('taskTimeModalBg'); renderTasks();
+}
+
+// ---------- swipe left/right to change the date ----------
+function attachSwipe(el){
+  if(!el || el.__swipe) return;
+  el.__swipe = true;
+  let sx = null, sy = null;
+  el.addEventListener('touchstart', (e)=>{
+    sx = e.touches[0].clientX; sy = e.touches[0].clientY;
+  }, {passive:true});
+  el.addEventListener('touchend', (e)=>{
+    if(sx===null) return;
+    const dx = e.changedTouches[0].clientX - sx;
+    const dy = e.changedTouches[0].clientY - sy;
+    sx = null;
+    if(Math.abs(dx) > 60 && Math.abs(dy) < 60){
+      shiftDate(dx < 0 ? 1 : -1); // swipe left = next day
+    }
+  }, {passive:true});
 }
 
 // ---------- GOALS ----------
@@ -1686,7 +1866,7 @@ function renderGoalCard(g){
   return `<div class="glass card" data-id="${g.id}">
     <div class="row between">
       <span class="drag-handle">☰</span>
-      <div style="flex:1;min-width:0;">
+      <div style="flex:1;min-width:0;cursor:pointer;" onclick="openGoalEdit('${g.id}')">
         <div class="goal-title">${pct>=100?'🏆 ':''}${escapeHtml(g.title)}</div>
         <div class="goal-meta">${progressText}${deadlineText} · started ${ddmmyyyy(g.createdAt.slice(0,10))}</div>
       </div>
@@ -1701,6 +1881,88 @@ function renderGoalCard(g){
     ${recent?`<div class="goal-log">${recent}</div>`:''}
   </div>`;
 }
+// ---------- goal editing (details + logs) ----------
+let editGoalId = null;
+let editDeletedLogIds = [];
+function openGoalEdit(id){
+  const g = data.goals.find(x=>x.id===id);
+  if(!g) return;
+  editGoalId = id;
+  editDeletedLogIds = [];
+  document.getElementById('geTitleInput').value = g.title;
+  document.getElementById('geTargetField').style.display = g.kind==='simple' ? 'none' : 'block';
+  document.getElementById('geTargetLabel').textContent = (KIND_META[g.kind]||{}).targetLabel || 'Target';
+  document.getElementById('geTargetInput').value = g.target;
+  document.getElementById('geUnitField').style.display = g.kind==='count' ? 'block' : 'none';
+  document.getElementById('geUnitInput').value = g.unit || '';
+  document.getElementById('geDeadlineInput').value = g.deadline || '';
+  renderGoalEditLogs(g);
+  openModal('goalEditModalBg');
+}
+function renderGoalEditLogs(g){
+  const meta = KIND_META[g.kind] || KIND_META.simple;
+  const el = document.getElementById('geLogList');
+  const logs = (g.log||[]);
+  el.innerHTML = logs.length
+    ? logs.slice().reverse().map((le,revIdx)=>{
+        const i = logs.length-1-revIdx;
+        le.id = le.id || ('log'+i);
+        if(editDeletedLogIds.includes(le.id)) return '';
+        return `<div class="log-edit-row" data-log-id="${le.id}">
+          <input type="number" inputmode="decimal" value="${le.value}" data-log-value="${le.id}">
+          <span class="when">${meta.absolute?'set to':'added'} · ${fmtDateTime(le.at)}</span>
+          <button class="danger" onclick="markLogDeleted('${le.id}')">✕</button>
+        </div>`;
+      }).join('') || '<div class="empty">No entries left.</div>'
+    : '<div class="empty">No progress logged yet.</div>';
+}
+function markLogDeleted(logId){
+  editDeletedLogIds.push(logId);
+  const g = data.goals.find(x=>x.id===editGoalId);
+  renderGoalEditLogs(g);
+}
+function recomputeGoal(g){
+  const meta = KIND_META[g.kind] || KIND_META.simple;
+  const logs = g.log || [];
+  if(logs.length === 0){
+    g.current = Math.min(g.current||0, g.target);
+  } else if(meta.absolute){
+    g.current = Math.min(logs[logs.length-1].value, g.target);
+    let run = 0;
+    logs.forEach(le=>{ run = Math.min(le.value, g.target); le.total = run; });
+  } else {
+    let run = 0;
+    logs.forEach(le=>{ run = Math.min(run + le.value, g.target); le.total = run; });
+    g.current = run;
+  }
+}
+function saveGoalEdit(){
+  const g = data.goals.find(x=>x.id===editGoalId);
+  if(!g) return;
+  const title = requireText('geTitleInput', 'Goal needs a name');
+  if(!title) return;
+  if(g.kind !== 'simple'){
+    const target = requireNumber('geTargetInput', 'Enter the target value');
+    if(!target) return;
+    g.target = target;
+  }
+  g.title = title;
+  if(g.kind === 'count') g.unit = document.getElementById('geUnitInput').value.trim() || g.unit;
+  g.deadline = document.getElementById('geDeadlineInput').value || '';
+  // apply log deletions + edited values
+  g.log = (g.log||[]).filter(le=>!editDeletedLogIds.includes(le.id));
+  g.log.forEach(le=>{
+    const inp = document.querySelector(`[data-log-value="${le.id}"]`);
+    if(inp){
+      const v = parseFloat(inp.value);
+      if(!isNaN(v) && v>=0) le.value = v;
+    }
+  });
+  recomputeGoal(g);
+  saveData(); closeModal('goalEditModalBg'); renderGoals();
+  showToast('✅ Goal updated');
+}
+
 function renderGoals(){
   const list = data.goals.filter(g=>g.term===goalPage);
   const el = document.getElementById('goalList');
@@ -1884,8 +2146,43 @@ function removeWallpaper(){
   document.getElementById('wallLayer').style.backgroundImage = '';
   document.getElementById('wallRemoveBtn').style.display = 'none';
 }
+function uploadAvatar(ev){
+  const file = ev.target.files && ev.target.files[0];
+  ev.target.value = '';
+  if(!file) return;
+  const reader = new FileReader();
+  reader.onload = ()=>{
+    const img = new Image();
+    img.onload = ()=>{
+      const size = 256;
+      const canvas = document.createElement('canvas');
+      canvas.width = size; canvas.height = size;
+      const s = Math.min(img.width, img.height);
+      canvas.getContext('2d').drawImage(img,
+        (img.width-s)/2, (img.height-s)/2, s, s, 0, 0, size, size);
+      const dataUrl = canvas.toDataURL('image/jpeg', .8);
+      data.profile = data.profile || {};
+      data.profile.avatar = dataUrl;
+      saveData();
+      document.getElementById('avatarPreview').src = dataUrl;
+      updateTopAvatar();
+      showToast('📷 Profile photo updated');
+    };
+    img.src = reader.result;
+  };
+  reader.readAsDataURL(file);
+}
+function updateTopAvatar(){
+  const btn = document.getElementById('topAvatarBtn');
+  if(data.profile && data.profile.avatar){
+    btn.innerHTML = `<img src="${data.profile.avatar}" alt="Profile">`;
+  } else {
+    btn.textContent = '👤';
+  }
+}
 function openProfileModal(){
   const p = data.profile || {};
+  document.getElementById('avatarPreview').src = p.avatar || 'icons/icon-192.png';
   document.getElementById('profNameInput').value = p.name || '';
   document.getElementById('profDobInput').value = p.dob || '';
   document.getElementById('profCityInput').value = p.city || '';
@@ -2141,6 +2438,10 @@ else {
   setTimeout(openSyncModal, 500);
 }
 setTimeout(maybeWeeklyBackup, 2500);
+// swipe left/right anywhere on date-based pages to change the day
+['view-routine','view-tasks','view-money','view-diary'].forEach(id=>{
+  attachSwipe(document.getElementById(id));
+});
 
 // ---------- PWA ----------
 if ('serviceWorker' in navigator) {
