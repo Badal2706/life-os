@@ -639,12 +639,12 @@
 <div class="modal-bg" id="profileModalBg"><div class="modal">
   <h3>👤 Profile & settings</h3>
   <div class="field"><label>Your name</label>
-    <input id="profNameInput" placeholder="e.g. Badal" maxlength="50"></div>
+    <input id="profNameInput" placeholder="e.g. Alex" maxlength="50"></div>
   <div class="field-row">
     <div class="field"><label>Date of birth</label>
       <input id="profDobInput" type="date"></div>
     <div class="field"><label>City</label>
-      <input id="profCityInput" placeholder="e.g. Ahmedabad" maxlength="50"></div>
+      <input id="profCityInput" placeholder="e.g. Mumbai" maxlength="50"></div>
   </div>
   <div class="field"><label>What do you do? (work / study)</label>
     <input id="profWorkInput" placeholder="e.g. CS student, developer" maxlength="80"></div>
@@ -1077,6 +1077,17 @@ async function submitSyncCode(){
       if(!snap.exists){
         if(btn) btn.textContent = 'Connect';
         fieldError('syncCodeInput', 'No account found with this key — check the spelling and try again');
+        // offer to start a fresh account under this key (keeps current data)
+        const actions = document.querySelector('#syncModalBody .modal-actions');
+        if(actions && !document.getElementById('forceKeyBtn')){
+          const b = document.createElement('button');
+          b.id = 'forceKeyBtn';
+          b.className = 'link-btn';
+          b.style.color = 'var(--accent2)';
+          b.textContent = 'Use this key anyway — start a new account with it (keeps my current data)';
+          b.onclick = ()=>forceUseKey(code);
+          actions.parentElement.appendChild(b);
+        }
         return;
       }
     }catch(e){
@@ -1087,6 +1098,15 @@ async function submitSyncCode(){
   }
   syncCode = code; localStorage.setItem(SYNC_CODE_KEY, code);
   closeModal('syncModalBg'); await connectSync(code);
+}
+async function forceUseKey(code){
+  const input = document.getElementById('syncCodeInput');
+  const current = input ? input.value.trim() : code;
+  syncCode = current || code;
+  localStorage.setItem(SYNC_CODE_KEY, syncCode);
+  closeModal('syncModalBg');
+  await connectSync(syncCode); // doc missing → created with current local data
+  showToast('🔑 New account started with this key');
 }
 async function confirmNewKey(key){
   syncCode = key; localStorage.setItem(SYNC_CODE_KEY, key);
