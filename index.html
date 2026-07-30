@@ -186,20 +186,25 @@
   .datebar button{background:var(--glass);border:1px solid var(--stroke);color:#fff;padding:8px 13px;font-size:16px;backdrop-filter:blur(8px);}
   .datebar .dlabel{flex:1;text-align:center;font-size:13.5px;font-weight:700;}
   .datebar .dlabel .tag{display:block;font-size:10.5px;color:var(--accent2);font-weight:600;}
-  /* Carousel: all three cards are the SAME width and render the SAME markup.
-     A side card is just the centre card scaled to 85% + blurred and pushed
-     mostly off-screen, so sliding it in is a pure scale/blur change — the
-     content never re-flows, so there is no jump or change of look. */
-  .carousel{position:relative;overflow:hidden;margin:0 -14px;padding:4px 14px 8px;}
-  .track{display:flex;align-items:flex-start;will-change:transform;}
-  .daycard{padding:12px;flex:0 0 100%;min-width:0;box-sizing:border-box;}
-  .daycard.side{cursor:pointer;filter:blur(1.6px);opacity:.7;transform:scale(.85);
+  /* Carousel geometry:
+       card width = 80% of the carousel, gap = 10px.
+       The track is shifted left by (one card + gap) minus the 10% centring
+       offset, so the centre card sits centred and ~10% of each neighbour
+       peeks in on either side.
+     All three cards render the SAME markup; a side card is only scaled to
+     85% and blurred, so sliding one in never re-flows content (no jump). */
+  .carousel{--cardw:80%;--cgap:10px;
+    position:relative;overflow:hidden;margin:0 -14px;padding:6px 0 10px;}
+  .track{display:flex;align-items:flex-start;gap:var(--cgap);will-change:transform;
+    margin-left:calc(-1 * var(--cardw) - var(--cgap) + 10%);}
+  .daycard{padding:12px;flex:0 0 var(--cardw);min-width:0;box-sizing:border-box;}
+  .daycard.side{cursor:pointer;filter:blur(1.6px);opacity:.72;transform:scale(.85);
     max-height:430px;overflow:hidden;
     transition:opacity .3s, filter .3s, transform .3s;}
   .daycard.side *{pointer-events:none;} /* side cards are previews only */
-  .daycard.side.prev{margin-left:-88%;transform-origin:right top;}
-  .daycard.side.next{margin-right:-88%;transform-origin:left top;}
-  .daycard.side:active{opacity:.88;filter:blur(.6px);}
+  .daycard.side.prev{transform-origin:right top;}
+  .daycard.side.next{transform-origin:left top;}
+  .daycard.side:active{opacity:.9;filter:blur(.6px);}
   .daycard.main{transform-origin:center top;will-change:transform;}
 
   .checkitem{display:flex;align-items:center;gap:8px;padding:10px 2px;border-bottom:1px solid rgba(255,255,255,.14);}
@@ -1362,7 +1367,7 @@ function animateTracks(delta){
     if(!el || !el.offsetParent) return;
     any = true; sliding = true;
     const main = el.querySelector('.daycard.main');
-    const dist = Math.round(el.clientWidth * 0.9);
+    const dist = Math.round(el.clientWidth * 0.8) + 10; // one card + gap
     el.style.transition = 'none';
     el.style.transform = `translateX(${delta>0 ? dist : -dist}px)`;
     if(main){
@@ -2374,7 +2379,7 @@ function attachCarouselSwipe(carousel){
       const tr = track();
       if(tr){
         tr.style.transform = `translateX(${dx}px)`;
-        const p = Math.min(1, Math.abs(dx)/(carousel.clientWidth*0.38));
+        const p = Math.min(1, Math.abs(dx)/(carousel.clientWidth*0.5));
         applyProgress(tr, p, dx < 0);
       }
     }
@@ -2390,8 +2395,9 @@ function attachCarouselSwipe(carousel){
       const dir = dx < 0 ? 1 : -1; // dragged left → next day
       sliding = true;
       haptic(15);
-      tr.style.transition = 'transform .18s ease-out';
-      tr.style.transform = `translateX(${dir>0 ? -w*0.42 : w*0.42}px)`;
+      const step = w*0.8 + 10; // one card + gap
+      tr.style.transition = 'transform .2s ease-out';
+      tr.style.transform = `translateX(${dir>0 ? -step : step}px)`;
       const c = cardsOf(tr);
       const incoming = dir>0 ? c.next : c.prev;
       if(incoming){
