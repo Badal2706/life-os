@@ -195,7 +195,10 @@
      85% and blurred, so sliding one in never re-flows content (no jump). */
   .carousel{--cardw:80%;--cgap:10px;
     position:relative;overflow:hidden;margin:0 -14px;padding:6px 0 10px;}
+  /* width MUST be explicit: with width:auto a negative margin would widen the
+     track, and the cards' % width would then resolve against that wider box. */
   .track{display:flex;align-items:flex-start;gap:var(--cgap);will-change:transform;
+    width:100%;box-sizing:border-box;
     margin-left:calc(-1 * var(--cardw) - var(--cgap) + 10%);}
   .daycard{padding:12px;flex:0 0 var(--cardw);min-width:0;box-sizing:border-box;}
   .daycard.side{cursor:pointer;filter:blur(1.6px);opacity:.72;transform:scale(.85);
