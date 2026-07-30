@@ -371,10 +371,15 @@
   .toast.show{opacity:1;}
   @media (max-width:420px){
     #app{padding:58px 10px 90px;}
-    .daycard.side{flex-basis:14%;}
+    .daycard.side{flex:0 0 34%;}
+    .daycard.side.prev{margin-left:-26%;}
+    .daycard.side.next{margin-right:-26%;}
     .bento{gap:8px;}
     .tile{padding:12px;}
   }
+  /* stop tap-to-search / text selection popups — only real inputs are selectable */
+  body{user-select:none;-webkit-user-select:none;-webkit-touch-callout:none;}
+  input,textarea{user-select:text;-webkit-user-select:text;}
 </style>
 </head>
 <body>
@@ -544,11 +549,21 @@
     <h1>Diary</h1>
     <div class="sub">Daily journal & quick notes</div>
     <div class="seg">
-      <button id="segDiary" class="active" onclick="setDiaryPage('diary')">📔 Diary</button>
-      <button id="segNotes" onclick="setDiaryPage('notes')">🗒 Notes</button>
+      <button id="segNotes" class="active" onclick="setDiaryPage('notes')">🗒 Notes</button>
+      <button id="segDiary" onclick="setDiaryPage('diary')">📔 Diary</button>
     </div>
 
-    <div id="diaryDiaryPage">
+    <div id="diaryNotesPage">
+      <div class="datebar">
+        <button onclick="shiftDate(-1)">‹</button>
+        <div class="dlabel"><div id="notesDateLabel"></div><span class="tag" id="notesTodayTag"></span></div>
+        <button onclick="shiftDate(1)">›</button>
+      </div>
+      <div class="fab-row"><button onclick="openNoteModal()">+ Add note</button></div>
+      <div class="glass card" id="notesList"></div>
+    </div>
+
+    <div id="diaryDiaryPage" style="display:none;">
       <div class="datebar">
         <button onclick="shiftDate(-1)">‹</button>
         <div class="dlabel"><div id="diaryDateLabel"></div><span class="tag" id="diaryTodayTag"></span></div>
@@ -564,11 +579,6 @@
       </div>
       <div class="section-label">Recent entries</div>
       <div id="diaryRecentList"></div>
-    </div>
-
-    <div id="diaryNotesPage" style="display:none;">
-      <div class="fab-row"><button onclick="openNoteModal()">+ Add note</button></div>
-      <div id="notesList"></div>
     </div>
   </div>
 
@@ -924,6 +934,7 @@ function escapeHtml(s){
 }
 function escapeAttr(s){ return String(s).replace(/'/g,"\\'").replace(/"/g,'&quot;'); }
 function rupee(n){ return '₹'+Number(n||0).toLocaleString(); }
+function haptic(ms){ if(navigator.vibrate) navigator.vibrate(ms||12); }
 
 // ---------- form validation (highlight + scroll + vibrate) ----------
 function fieldError(inputId, msg){
@@ -963,7 +974,11 @@ function normalizeData(d){
     expenses: d.expenses || [],
     earnings: d.earnings || [],
     diary: d.diary || {},
-    notes: d.notes || [],
+    notes: (d.notes || []).map(n=>({
+      ...n,
+      date: n.date || (n.createdAt ? n.createdAt.slice(0,10) : todayStr()),
+      done: !!n.done
+    })),
     profile: d.profile || {},
     rewards: d.rewards || []
   };
@@ -1262,13 +1277,14 @@ function switchView(v){
   goalPage = 'short';
   moneyPage = 'spend';
   if(typeof diaryPage !== 'undefined'){
-    diaryPage = 'diary';
-    document.getElementById('segDiary')?.classList.add('active');
-    document.getElementById('segNotes')?.classList.remove('active');
+    diaryPage = 'notes';
+    document.getElementById('segNotes')?.classList.add('active');
+    document.getElementById('segDiary')?.classList.remove('active');
     const dp = document.getElementById('diaryDiaryPage'), np = document.getElementById('diaryNotesPage');
-    if(dp) dp.style.display = 'block';
-    if(np) np.style.display = 'none';
+    if(np) np.style.display = 'block';
+    if(dp) dp.style.display = 'none';
   }
+  haptic();
   gridMonthOffset = 0;
   moneyMonthOffset = 0;
   document.querySelectorAll('.view').forEach(el=>el.classList.remove('active'));
@@ -1302,6 +1318,7 @@ let sliding = false;
 function shiftDate(delta){
   if(sliding) return;
   viewDate = addDays(viewDate, delta);
+  haptic(8);
   renderAll();
   animateTracks(delta);
 }
@@ -1549,6 +1566,7 @@ function claimReward(id){
   if(!r) return;
   if(pointsBalance().balance < r.cost) return;
   r.claimedAt = nowIso();
+  haptic([30,40,30]);
   saveData(); renderHome();
 }
 function deleteReward(id){
@@ -1654,6 +1672,7 @@ function toggleRoutine(id){
   const r = data.routines.find(x=>x.id===id);
   if(r.history[viewDate]) delete r.history[viewDate];
   else r.history[viewDate] = true;
+  haptic();
   saveData(); renderRoutine();
 }
 // ✕ = remove from THIS day only (past + other days untouched)
@@ -1730,6 +1749,7 @@ function toggleTask(id){
   const t = data.tasks.find(x=>x.id===id);
   t.done = !t.done;
   t.doneAt = t.done ? nowIso() : null;
+  haptic();
   saveData(); renderTasks();
 }
 function deleteTask(id){
@@ -1860,7 +1880,7 @@ function saveTaskTime(){
   saveData(); closeModal('taskTimeModalBg'); renderTasks();
 }
 
-// ---------- swipe left/right to change the date ----------
+// ---------- swipe left/right to change the date (simple, for non-carousel pages) ----------
 function attachSwipe(el){
   if(!el || el.__swipe) return;
   el.__swipe = true;
@@ -1875,6 +1895,62 @@ function attachSwipe(el){
     sx = null;
     if(Math.abs(dx) > 60 && Math.abs(dy) < 60){
       shiftDate(dx < 0 ? 1 : -1); // swipe left = next day
+    }
+  }, {passive:true});
+}
+
+// ---------- interactive carousel swipe: card follows your finger,
+// holds where you pause, completes or snaps back on release ----------
+function attachCarouselSwipe(carousel){
+  if(!carousel || carousel.__cswipe) return;
+  carousel.__cswipe = true;
+  let sx=0, sy=0, dx=0, active=false, horizontal=null, startT=0, lastX=0, lastT=0, vel=0;
+  const track = ()=>carousel.querySelector('.track');
+  carousel.addEventListener('touchstart', (e)=>{
+    if(sliding) return;
+    sx = lastX = e.touches[0].clientX; sy = e.touches[0].clientY;
+    dx = 0; active = true; horizontal = null; vel = 0;
+    startT = lastT = Date.now();
+    const tr = track();
+    if(tr) tr.style.transition = 'none';
+  }, {passive:true});
+  carousel.addEventListener('touchmove', (e)=>{
+    if(!active) return;
+    const x = e.touches[0].clientX, y = e.touches[0].clientY;
+    const mx = x - sx, my = y - sy;
+    if(horizontal===null && (Math.abs(mx)>8 || Math.abs(my)>8)){
+      horizontal = Math.abs(mx) > Math.abs(my);
+    }
+    if(horizontal){
+      e.preventDefault(); // keep the page from scrolling while dragging
+      dx = mx;
+      const now = Date.now();
+      if(now - lastT > 0){ vel = (x - lastX)/(now - lastT); }
+      lastX = x; lastT = now;
+      const tr = track();
+      if(tr) tr.style.transform = `translateX(${dx}px)`;
+    }
+  }, {passive:false});
+  carousel.addEventListener('touchend', ()=>{
+    if(!active) return;
+    active = false;
+    const tr = track();
+    if(!tr) return;
+    const w = carousel.clientWidth;
+    const commit = horizontal && (Math.abs(dx) > w*0.30 || Math.abs(vel) > 0.45);
+    if(commit){
+      const dir = dx < 0 ? 1 : -1; // dragged left → next day
+      sliding = true;
+      haptic(15);
+      tr.style.transition = 'transform .18s ease-out';
+      tr.style.transform = `translateX(${dir>0 ? -w*0.55 : w*0.55}px)`;
+      setTimeout(()=>{
+        sliding = false;
+        shiftDate(dir);
+      }, 170);
+    } else {
+      tr.style.transition = 'transform .28s cubic-bezier(.25,.9,.3,1)';
+      tr.style.transform = 'translateX(0)';
     }
   }, {passive:true});
 }
@@ -1963,6 +2039,7 @@ function submitProgress(){
   else { g.current = Math.min(before + val, g.target); }
   g.log = g.log || [];
   g.log.push({at: nowIso(), value: val, total: g.current});
+  haptic();
   saveData(); closeModal('progressModalBg'); renderGoals();
 }
 function renderGoalCard(g){
@@ -2171,15 +2248,16 @@ function renderMoney(){
     : '<div class="empty">No earnings logged this month.</div>';
 }
 
-// ---------- DIARY & NOTES ----------
-let diaryPage = 'diary';
+// ---------- NOTES & DIARY ----------
+let diaryPage = 'notes';
 function setDiaryPage(p){
   diaryPage = p;
+  haptic();
   document.getElementById('segDiary').classList.toggle('active', p==='diary');
   document.getElementById('segNotes').classList.toggle('active', p==='notes');
   document.getElementById('diaryDiaryPage').style.display = p==='diary' ? 'block' : 'none';
   document.getElementById('diaryNotesPage').style.display = p==='notes' ? 'block' : 'none';
-  if(p==='notes') renderNotes();
+  renderDiary();
 }
 let editingNoteId = null;
 function openNoteModal(id){
@@ -2198,34 +2276,60 @@ function saveNote(){
     const n = data.notes.find(x=>x.id===editingNoteId);
     if(n){ n.title = title; n.text = text; n.updatedAt = nowIso(); }
   } else {
-    data.notes.push({id:uid(), title, text, createdAt: nowIso(), updatedAt: nowIso()});
+    data.notes.push({id:uid(), title, text, date: viewDate, done:false,
+      createdAt: nowIso(), updatedAt: nowIso()});
   }
+  haptic();
   saveData(); closeModal('noteModalBg'); renderNotes();
+}
+function toggleNote(id){
+  const n = data.notes.find(x=>x.id===id);
+  n.done = !n.done;
+  n.doneAt = n.done ? nowIso() : null;
+  haptic();
+  saveData(); renderNotes();
 }
 function deleteNote(id){
   if(!confirm('Delete this note?')) return;
   data.notes = data.notes.filter(n=>n.id!==id);
+  haptic(20);
+  saveData(); renderNotes();
+}
+function moveNoteToNextDay(id){
+  const n = data.notes.find(x=>x.id===id);
+  n.date = addDays(n.date, 1);
+  haptic();
   saveData(); renderNotes();
 }
 function renderNotes(){
+  document.getElementById('notesDateLabel').textContent = niceDateLabel(viewDate);
+  document.getElementById('notesTodayTag').textContent = viewDate===todayStr() ? '● Today' : '';
   const el = document.getElementById('notesList');
-  const notes = (data.notes||[]).slice().sort((a,b)=>(b.updatedAt||'').localeCompare(a.updatedAt||''));
+  const notes = (data.notes||[]).filter(n=>n.date===viewDate);
   el.innerHTML = notes.length
-    ? notes.map(n=>`<div class="glass card">
-        <div class="row between" style="align-items:flex-start;">
+    ? `<div id="notesInner">` + notes.map(n=>`<div class="task-item" data-id="${n.id}">
+        <div class="task-top" style="align-items:flex-start;">
+          <span class="drag-handle">☰</span>
+          <div class="checkbox ${n.done?'done':''}" onclick="toggleNote('${n.id}')">${n.done?'✓':''}</div>
           <div style="flex:1;min-width:0;cursor:pointer;" onclick="openNoteModal('${n.id}')">
-            ${n.title?`<div class="goal-title" style="font-size:14px;">${escapeHtml(n.title)}</div>`:''}
-            <div style="font-size:13.5px;line-height:1.5;margin-top:${n.title?'5px':'0'};white-space:pre-wrap;word-break:break-word;">${escapeHtml(n.text)}</div>
-            <div class="goal-meta" style="margin-top:7px;">✏️ ${fmtDateTime(n.updatedAt)}</div>
+            ${n.title?`<div class="goal-title" style="font-size:14px;${n.done?'text-decoration:line-through;color:var(--muted);':''}">${escapeHtml(n.title)}</div>`:''}
+            <div style="font-size:13.5px;line-height:1.5;margin-top:${n.title?'4px':'0'};white-space:pre-wrap;word-break:break-word;${n.done?'text-decoration:line-through;color:var(--muted);':''}">${escapeHtml(n.text)}</div>
           </div>
+        </div>
+        <div class="task-bottom">
+          <span class="chip" style="cursor:default;">✏️ ${fmtDateTime(n.updatedAt)}</span>
+          ${!n.done?`<button class="chip" onclick="moveNoteToNextDay('${n.id}')">→ Tomorrow</button>`:''}
           <button class="danger" onclick="deleteNote('${n.id}')">✕</button>
         </div>
-      </div>`).join('')
-    : '<div class="empty">No notes yet.<br>Jot down anything you must not forget.</div>';
+      </div>`).join('') + '</div>'
+    : '<div class="empty">No notes for this day.<br>Jot down anything you must not forget.</div>';
+  attachDrag(document.getElementById('notesInner'), (ids)=>{
+    applySubsetOrder(data.notes, ids); saveData(); renderNotes();
+  });
 }
 
 function renderDiary(){
-  if(diaryPage==='notes'){ renderNotes(); }
+  if(diaryPage==='notes'){ renderNotes(); return; }
   document.getElementById('diaryDateLabel').textContent = niceDateLabel(viewDate);
   document.getElementById('diaryTodayTag').textContent = viewDate===todayStr() ? '● Today' : '';
   const entry = data.diary[viewDate];
@@ -2609,8 +2713,9 @@ else {
   setTimeout(openSyncModal, 500);
 }
 setTimeout(maybeWeeklyBackup, 2500);
-// swipe left/right anywhere on date-based pages to change the day
-['view-routine','view-tasks','view-money','view-diary'].forEach(id=>{
+// finger-tracking swipe on the carousels; simple swipe elsewhere
+document.querySelectorAll('.carousel').forEach(c=>attachCarouselSwipe(c));
+['view-money','view-diary'].forEach(id=>{
   attachSwipe(document.getElementById(id));
 });
 
