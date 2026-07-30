@@ -186,23 +186,21 @@
   .datebar button{background:var(--glass);border:1px solid var(--stroke);color:#fff;padding:8px 13px;font-size:16px;backdrop-filter:blur(8px);}
   .datebar .dlabel{flex:1;text-align:center;font-size:13.5px;font-weight:700;}
   .datebar .dlabel .tag{display:block;font-size:10.5px;color:var(--accent2);font-weight:600;}
-  .carousel{position:relative;overflow:hidden;margin:0 -4px;padding:4px;}
-  .track{display:flex;gap:10px;align-items:flex-start;will-change:transform;}
-  .daycard{padding:12px;min-width:0;}
-  /* side cards are near full size (just 16% smaller), mostly tucked off-screen */
-  .daycard.side{flex:0 0 85%;cursor:pointer;filter:blur(1.4px);opacity:.6;transform:scale(.84);
-    transform-origin:center top;font-size:13px;max-height:360px;overflow:hidden;
+  /* Carousel: all three cards are the SAME width and render the SAME markup.
+     A side card is just the centre card scaled to 85% + blurred and pushed
+     mostly off-screen, so sliding it in is a pure scale/blur change — the
+     content never re-flows, so there is no jump or change of look. */
+  .carousel{position:relative;overflow:hidden;margin:0 -14px;padding:4px 14px 8px;}
+  .track{display:flex;align-items:flex-start;will-change:transform;}
+  .daycard{padding:12px;flex:0 0 100%;min-width:0;box-sizing:border-box;}
+  .daycard.side{cursor:pointer;filter:blur(1.6px);opacity:.7;transform:scale(.85);
+    max-height:430px;overflow:hidden;
     transition:opacity .3s, filter .3s, transform .3s;}
-  .daycard.side.prev{margin-left:-77%;transform-origin:right top;}
-  .daycard.side.next{margin-right:-77%;transform-origin:left top;}
-  .daycard.side.prev .sd{text-align:right;padding-right:4px;}
-  .daycard.side.next .sd{text-align:left;padding-left:4px;}
-  .daycard.side:active{opacity:.85;filter:blur(.5px);}
-  .daycard.side .sd{font-size:10.5px;font-weight:700;margin-bottom:6px;text-align:center;color:#dfe9ff;}
-  .daycard.side .si{padding:4px 0;border-bottom:1px solid rgba(255,255,255,.12);
-    white-space:nowrap;overflow:hidden;text-overflow:ellipsis;color:var(--muted);}
-  .daycard.side .si.done{text-decoration:line-through;opacity:.6;}
-  .daycard.main{flex:1;transform-origin:center top;will-change:transform;}
+  .daycard.side *{pointer-events:none;} /* side cards are previews only */
+  .daycard.side.prev{margin-left:-88%;transform-origin:right top;}
+  .daycard.side.next{margin-right:-88%;transform-origin:left top;}
+  .daycard.side:active{opacity:.88;filter:blur(.6px);}
+  .daycard.main{transform-origin:center top;will-change:transform;}
 
   .checkitem{display:flex;align-items:center;gap:8px;padding:10px 2px;border-bottom:1px solid rgba(255,255,255,.14);}
   .checkitem:last-child{border-bottom:none;}
@@ -1364,14 +1362,14 @@ function animateTracks(delta){
     if(!el || !el.offsetParent) return;
     any = true; sliding = true;
     const main = el.querySelector('.daycard.main');
-    const dist = Math.round(el.clientWidth * 0.19) + 10;
+    const dist = Math.round(el.clientWidth * 0.9);
     el.style.transition = 'none';
     el.style.transform = `translateX(${delta>0 ? dist : -dist}px)`;
     if(main){
       main.style.transition = 'none';
-      main.style.transform = 'scale(.84)';
-      main.style.opacity = '.6';
-      main.style.filter = 'blur(1.4px)';
+      main.style.transform = 'scale(.85)';
+      main.style.opacity = '.7';
+      main.style.filter = 'blur(1.6px)';
     }
     requestAnimationFrame(()=>{ requestAnimationFrame(()=>{
       el.style.transition = 'transform .42s cubic-bezier(.25,.9,.3,1)';
@@ -2099,46 +2097,44 @@ function skipRoutineDay(id){
   delete r.history[viewDate];
   saveData(); renderRoutine();
 }
-function sideDayCardRoutine(dateStr, dir){
-  const items = activeRoutines(dateStr).slice(0,6).map(r=>{
-    const done = !!r.history[dateStr];
-    return `<div class="si ${done?'done':''}">${done?'✓ ':''}${escapeHtml(r.name)}</div>`;
-  }).join('');
-  return `<div class="glass daycard side ${dir<0?'prev':'next'}" onclick="shiftDate(${dir})">
-    <div class="sd">${shortDateLabel(dateStr)}</div>${items || '<div class="si">—</div>'}
-  </div>`;
+// Builds the inner HTML of a routine day card.
+// Side cards use the SAME markup as the centre card (just inert), so sliding
+// one into the centre never changes its content — no jump, no re-layout.
+function routineDayHtml(dateStr, live){
+  const act = activeRoutines(dateStr);
+  if(act.length===0){
+    return '<div class="empty">No routine for this day.<br>Add one above — you can pick which weekdays it runs.</div>';
+  }
+  let html = '';
+  for(let b=0; b<8; b++){
+    const items = act.filter(r=>r.block===b);
+    if(items.length===0) continue; // hide empty blocks
+    html += `<div class="block-head">${BLOCK_LABELS[b]}</div>
+      <div class="blocklist" ${live?`data-block="${b}"`:''}>` +
+      items.map(r=>{
+        const done = !!r.history[dateStr];
+        const streak = computeStreak(r, dateStr);
+        return `<div class="checkitem" ${live?`data-id="${r.id}"`:''}>
+          <span class="drag-handle">☰</span>
+          <div class="checkbox ${done?'done':''}" ${live?`onclick="toggleRoutine('${r.id}')"`:''}>${done?'✓':''}</div>
+          <div class="item-name ${done?'done':''}" ${live?`onclick="openRoutineEdit('${r.id}')"`:''}>${escapeHtml(r.name)}</div>
+          ${streak>0?`<div class="streak-badge">🔥 ${streak}</div>`:''}
+          <button class="danger" ${live?`onclick="skipRoutineDay('${r.id}')"`:''}>✕</button>
+        </div>`;
+      }).join('') + '</div>';
+  }
+  return html;
 }
 function renderRoutine(){
   document.getElementById('routineDateLabel').textContent = niceDateLabel(viewDate);
   document.getElementById('routineTodayTag').textContent = viewDate===todayStr() ? '● Today' : '';
-  const act = activeRoutines(viewDate);
-  let main = '';
-  if(act.length===0){
-    main = '<div class="empty">No routine for this day.<br>Add one above — you can pick which weekdays it runs.</div>';
-  } else {
-    for(let b=0; b<8; b++){
-      const items = act.filter(r=>r.block===b);
-      if(items.length===0) continue; // hide empty blocks
-      main += `<div class="block-head">${BLOCK_LABELS[b]}</div>
-        <div class="blocklist" data-block="${b}">` +
-        items.map(r=>{
-          const done = !!r.history[viewDate];
-          const streak = computeStreak(r, viewDate);
-          return `<div class="checkitem" data-id="${r.id}">
-            <span class="drag-handle">☰</span>
-            <div class="checkbox ${done?'done':''}" onclick="toggleRoutine('${r.id}')">${done?'✓':''}</div>
-            <div class="item-name ${done?'done':''}" onclick="openRoutineEdit('${r.id}')">${escapeHtml(r.name)}</div>
-            ${streak>0?`<div class="streak-badge">🔥 ${streak}</div>`:''}
-            <button class="danger" title="Remove from this day only" onclick="skipRoutineDay('${r.id}')">✕</button>
-          </div>`;
-        }).join('') + '</div>';
-    }
-  }
+  const side = (d, dir)=>`<div class="glass daycard side ${dir<0?'prev':'next'}" onclick="shiftDate(${dir})">
+    ${routineDayHtml(d, false)}</div>`;
   document.getElementById('routineTrack').innerHTML =
-    sideDayCardRoutine(addDays(viewDate,-1), -1) +
-    `<div class="glass daycard main">${main}</div>` +
-    sideDayCardRoutine(addDays(viewDate,1), 1);
-  document.querySelectorAll('#routineTrack .blocklist').forEach(bl=>{
+    side(addDays(viewDate,-1), -1) +
+    `<div class="glass daycard main">${routineDayHtml(viewDate, true)}</div>` +
+    side(addDays(viewDate,1), 1);
+  document.querySelectorAll('#routineTrack .daycard.main .blocklist').forEach(bl=>{
     attachDrag(bl, (ids)=>{ applySubsetOrder(data.routines, ids); saveData(); renderRoutine(); });
   });
 }
@@ -2179,36 +2175,32 @@ function moveTaskToNextDay(id){
   t.date = addDays(t.date, 1);
   saveData(); renderTasks();
 }
-function sideDayCardTasks(dateStr, dir){
-  const items = data.tasks.filter(t=>t.date===dateStr).slice(0,6).map(t=>
-    `<div class="si ${t.done?'done':''}">${t.done?'✓ ':''}${escapeHtml(t.text)}</div>`
-  ).join('');
-  return `<div class="glass daycard side ${dir<0?'prev':'next'}" onclick="shiftDate(${dir})">
-    <div class="sd">${shortDateLabel(dateStr)}</div>${items || '<div class="si">—</div>'}
-  </div>`;
+// Same markup for centre and side cards — identical look, no jump when sliding.
+function tasksDayHtml(dateStr, live){
+  const todays = data.tasks.filter(t=>t.date===dateStr);
+  if(todays.length === 0) return '<div class="empty">No tasks for this day.</div>';
+  return `<div ${live?'id="taskListInner"':''}>` + todays.map(t=>`<div class="task-item" ${live?`data-id="${t.id}"`:''}>
+      <div class="task-top">
+        <span class="drag-handle">☰</span>
+        <div class="checkbox ${t.done?'done':''}" ${live?`onclick="toggleTask('${t.id}')"`:''}>${t.done?'✓':''}</div>
+        <div class="task-text ${t.done?'done':''}">${escapeHtml(t.text)}</div>
+      </div>
+      <div class="task-bottom">
+        <button class="chip" ${live?`onclick="openTaskTimeModal('${t.id}')"`:''}>🕒 ${taskTimeLabel(t) || 'Add time'}</button>
+        ${!t.done?`<button class="chip" ${live?`onclick="moveTaskToNextDay('${t.id}')"`:''}>→ Tomorrow</button>`:''}
+        <button class="danger" ${live?`onclick="deleteTask('${t.id}')"`:''}>✕</button>
+      </div>
+    </div>`).join('') + '</div>';
 }
 function renderTasks(){
   document.getElementById('tasksDateLabel').textContent = niceDateLabel(viewDate);
   document.getElementById('tasksTodayTag').textContent = viewDate===todayStr() ? '● Today' : '';
-  const todays = data.tasks.filter(t=>t.date===viewDate);
-  const main = todays.length === 0
-    ? '<div class="empty">No tasks for this day.</div>'
-    : `<div id="taskListInner">` + todays.map(t=>`<div class="task-item" data-id="${t.id}">
-        <div class="task-top">
-          <span class="drag-handle">☰</span>
-          <div class="checkbox ${t.done?'done':''}" onclick="toggleTask('${t.id}')">${t.done?'✓':''}</div>
-          <div class="task-text ${t.done?'done':''}">${escapeHtml(t.text)}</div>
-        </div>
-        <div class="task-bottom">
-          <button class="chip" onclick="openTaskTimeModal('${t.id}')">🕒 ${taskTimeLabel(t) || 'Add time'}</button>
-          ${!t.done?`<button class="chip" onclick="moveTaskToNextDay('${t.id}')">→ Tomorrow</button>`:''}
-          <button class="danger" onclick="deleteTask('${t.id}')">✕</button>
-        </div>
-      </div>`).join('') + '</div>';
+  const side = (d, dir)=>`<div class="glass daycard side ${dir<0?'prev':'next'}" onclick="shiftDate(${dir})">
+    ${tasksDayHtml(d, false)}</div>`;
   document.getElementById('tasksTrack').innerHTML =
-    sideDayCardTasks(addDays(viewDate,-1), -1) +
-    `<div class="glass daycard main">${main}</div>` +
-    sideDayCardTasks(addDays(viewDate,1), 1);
+    side(addDays(viewDate,-1), -1) +
+    `<div class="glass daycard main">${tasksDayHtml(viewDate, true)}</div>` +
+    side(addDays(viewDate,1), 1);
   attachDrag(document.getElementById('taskListInner'), (ids)=>{
     applySubsetOrder(data.tasks, ids); saveData(); renderTasks();
   });
@@ -2336,17 +2328,17 @@ function attachCarouselSwipe(carousel){
     const incoming = dirNext ? c.next : c.prev;
     const outgoing = dirNext ? c.prev : c.next;
     if(c.main){
-      c.main.style.transform = `scale(${1 - .16*p})`;
-      c.main.style.filter = `blur(${(1.4*p).toFixed(2)}px)`;
-      c.main.style.opacity = String(1 - .4*p);
+      c.main.style.transform = `scale(${1 - .15*p})`;
+      c.main.style.filter = `blur(${(1.6*p).toFixed(2)}px)`;
+      c.main.style.opacity = String(1 - .3*p);
     }
     if(incoming){
-      incoming.style.transform = `scale(${.84 + .16*p})`;
-      incoming.style.filter = `blur(${(1.4*(1-p)).toFixed(2)}px)`;
-      incoming.style.opacity = String(.6 + .4*p);
+      incoming.style.transform = `scale(${.85 + .15*p})`;
+      incoming.style.filter = `blur(${(1.6*(1-p)).toFixed(2)}px)`;
+      incoming.style.opacity = String(.7 + .3*p);
     }
     if(outgoing){
-      outgoing.style.opacity = String(.6*(1-p*.5));
+      outgoing.style.opacity = String(.7*(1-p*.5));
     }
   };
   const clearCardStyles = (tr, animate)=>{
@@ -2399,7 +2391,7 @@ function attachCarouselSwipe(carousel){
       sliding = true;
       haptic(15);
       tr.style.transition = 'transform .18s ease-out';
-      tr.style.transform = `translateX(${dir>0 ? -w*0.55 : w*0.55}px)`;
+      tr.style.transform = `translateX(${dir>0 ? -w*0.42 : w*0.42}px)`;
       const c = cardsOf(tr);
       const incoming = dir>0 ? c.next : c.prev;
       if(incoming){
