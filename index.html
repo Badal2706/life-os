@@ -189,11 +189,12 @@
   .carousel{position:relative;overflow:hidden;margin:0 -4px;padding:4px;}
   .track{display:flex;gap:10px;align-items:flex-start;will-change:transform;}
   .daycard{padding:12px;min-width:0;}
-  .daycard.side{flex:0 0 30%;cursor:pointer;filter:blur(1.4px);opacity:.6;transform:scale(.84);
-    transform-origin:center top;font-size:12px;max-height:340px;overflow:hidden;
+  /* side cards are near full size (just 16% smaller), mostly tucked off-screen */
+  .daycard.side{flex:0 0 85%;cursor:pointer;filter:blur(1.4px);opacity:.6;transform:scale(.84);
+    transform-origin:center top;font-size:13px;max-height:360px;overflow:hidden;
     transition:opacity .3s, filter .3s, transform .3s;}
-  .daycard.side.prev{margin-left:-22%;}
-  .daycard.side.next{margin-right:-22%;}
+  .daycard.side.prev{margin-left:-77%;transform-origin:right top;}
+  .daycard.side.next{margin-right:-77%;transform-origin:left top;}
   .daycard.side.prev .sd{text-align:right;padding-right:4px;}
   .daycard.side.next .sd{text-align:left;padding-left:4px;}
   .daycard.side:active{opacity:.85;filter:blur(.5px);}
@@ -297,7 +298,7 @@
   .modal-bg.open{display:flex;}
   .modal-bg.open .modal{animation:rise .32s cubic-bezier(.22,.9,.32,1);}
   @keyframes rise{from{transform:translateY(48px);opacity:.5;}to{transform:translateY(0);opacity:1;}}
-  .checkbox.done{animation:pop .28s cubic-bezier(.3,1.6,.5,1);}
+  .checkbox.pop{animation:pop .28s cubic-bezier(.3,1.6,.5,1);}
   @keyframes pop{0%{transform:scale(.6);}60%{transform:scale(1.18);}100%{transform:scale(1);}}
   .tab{transition:background .22s, color .22s, transform .15s;}
   .tab:active{transform:scale(.93);}
@@ -384,9 +385,6 @@
   .toast.show{opacity:1;}
   @media (max-width:420px){
     #app{padding:58px 10px 90px;}
-    .daycard.side{flex:0 0 34%;}
-    .daycard.side.prev{margin-left:-26%;}
-    .daycard.side.next{margin-right:-26%;}
     .bento{gap:8px;}
     .tile{padding:12px;}
   }
@@ -1491,13 +1489,278 @@ const QUOTES = [
   ["Be stronger than your strongest excuse.","Unknown"],
   ["Work in silence, let success make the noise.","Unknown"],
   ["Consistency is what transforms average into excellence.","Unknown"],
-  ["Six months of focus can put you five years ahead.","Unknown"]
+  ["Six months of focus can put you five years ahead.","Unknown"],
+  ["The journey of a thousand miles begins with a single step.","Lao Tzu"],
+  ["When I let go of what I am, I become what I might be.","Lao Tzu"],
+  ["Nature does not hurry, yet everything is accomplished.","Lao Tzu"],
+  ["Mastering others is strength. Mastering yourself is true power.","Lao Tzu"],
+  ["New beginnings are often disguised as painful endings.","Lao Tzu"],
+  ["Time is a created thing. To say 'I don't have time' is to say 'I don't want to'.","Lao Tzu"],
+  ["Our greatest glory is not in never falling, but in rising every time we fall.","Confucius"],
+  ["Real knowledge is to know the extent of one's ignorance.","Confucius"],
+  ["The will to win means nothing without the will to prepare.","Juma Ikangaa"],
+  ["Champions keep playing until they get it right.","Billie Jean King"],
+  ["I've failed over and over again in my life. And that is why I succeed.","Michael Jordan"],
+  ["Talent wins games, but teamwork wins championships.","Michael Jordan"],
+  ["Obstacles don't have to stop you. If you run into a wall, find a way to climb it.","Michael Jordan"],
+  ["Hard work beats talent when talent doesn't work hard.","Tim Notke"],
+  ["The more difficult the victory, the greater the happiness in winning.","Pele"],
+  ["You have to expect things of yourself before you can do them.","Michael Jordan"],
+  ["It's hard to beat a person who never gives up.","Babe Ruth"],
+  ["Never let the fear of striking out keep you from playing the game.","Babe Ruth"],
+  ["Run when you can, walk if you have to, crawl if you must; just never give up.","Dean Karnazes"],
+  ["Pain is temporary. Quitting lasts forever.","Lance Armstrong"],
+  ["The fight is won or lost far away from witnesses, behind the lines, in the gym.","Muhammad Ali"],
+  ["Suffer now and live the rest of your life as a champion.","Muhammad Ali"],
+  ["He who is not courageous enough to take risks will accomplish nothing in life.","Muhammad Ali"],
+  ["Age is whatever you think it is. You are as old as you think you are.","Muhammad Ali"],
+  ["A man who views the world the same at fifty as he did at twenty has wasted thirty years.","Muhammad Ali"],
+  ["Only I can change my life. No one can do it for me.","Carol Burnett"],
+  ["Perseverance is not a long race; it is many short races one after the other.","Walter Elliot"],
+  ["Doubt kills more dreams than failure ever will.","Suzy Kassem"],
+  ["The harder the conflict, the greater the triumph.","George Washington"],
+  ["Opportunities don't happen. You create them.","Chris Grosser"],
+  ["Don't be afraid to give up the good to go for the great.","John D. Rockefeller"],
+  ["I find that the harder I work, the more luck I seem to have.","Thomas Jefferson"],
+  ["There are no shortcuts to any place worth going.","Beverly Sills"],
+  ["The successful man will profit from his mistakes and try again in a different way.","Dale Carnegie"],
+  ["Discouragement and failure are two of the surest stepping stones to success.","Dale Carnegie"],
+  ["Inaction breeds doubt and fear. Action breeds confidence and courage.","Dale Carnegie"],
+  ["Most important things have been accomplished by people who kept trying when there seemed to be no hope.","Dale Carnegie"],
+  ["You can't build a reputation on what you are going to do.","Henry Ford"],
+  ["Obstacles are those frightful things you see when you take your eyes off your goal.","Henry Ford"],
+  ["Failure is simply the opportunity to begin again, this time more intelligently.","Henry Ford"],
+  ["Vision without execution is just hallucination.","Henry Ford"],
+  ["Chop your own wood and it will warm you twice.","Henry Ford"],
+  ["Nothing is particularly hard if you divide it into small jobs.","Henry Ford"],
+  ["Stay hungry, stay foolish.","Steve Jobs"],
+  ["Innovation distinguishes between a leader and a follower.","Steve Jobs"],
+  ["Details matter. It's worth waiting to get it right.","Steve Jobs"],
+  ["Deciding what not to do is as important as deciding what to do.","Steve Jobs"],
+  ["Have the courage to follow your heart and intuition.","Steve Jobs"],
+  ["Sometimes life hits you in the head with a brick. Don't lose faith.","Steve Jobs"],
+  ["If you really look closely, most overnight successes took a long time.","Steve Jobs"],
+  ["The people who are crazy enough to think they can change the world are the ones who do.","Steve Jobs"],
+  ["It's fine to celebrate success, but it is more important to heed the lessons of failure.","Bill Gates"],
+  ["Patience is a key element of success.","Bill Gates"],
+  ["Success is a lousy teacher. It seduces smart people into thinking they can't lose.","Bill Gates"],
+  ["If you are born poor it's not your mistake, but if you die poor it's your mistake.","Bill Gates"],
+  ["Your most unhappy customers are your greatest source of learning.","Bill Gates"],
+  ["When something is important enough, you do it even if the odds are not in your favor.","Elon Musk"],
+  ["Persistence is very important. You should not give up unless you are forced to give up.","Elon Musk"],
+  ["It is possible for ordinary people to choose to be extraordinary.","Elon Musk"],
+  ["The biggest risk is not taking any risk.","Mark Zuckerberg"],
+  ["Done is better than perfect.","Sheryl Sandberg"],
+  ["Ideas are easy. Implementation is hard.","Guy Kawasaki"],
+  ["If you double the number of experiments you do per year, you'll double your inventiveness.","Jeff Bezos"],
+  ["If you're not stubborn, you'll give up on experiments too soon.","Jeff Bezos"],
+  ["Life's too short to hang out with people who aren't resourceful.","Jeff Bezos"],
+  ["We are what we choose.","Jeff Bezos"],
+  ["The best way to predict the future is to invent it.","Alan Kay"],
+  ["Do not go where the path may lead, go instead where there is no path and leave a trail.","Ralph Waldo Emerson"],
+  ["What lies behind us and what lies before us are tiny matters compared to what lies within us.","Ralph Waldo Emerson"],
+  ["Adopt the pace of nature: her secret is patience.","Ralph Waldo Emerson"],
+  ["The only person you are destined to become is the person you decide to be.","Ralph Waldo Emerson"],
+  ["Write it on your heart that every day is the best day in the year.","Ralph Waldo Emerson"],
+  ["Always do what you are afraid to do.","Ralph Waldo Emerson"],
+  ["Life is a journey, not a destination.","Ralph Waldo Emerson"],
+  ["The creation of a thousand forests is in one acorn.","Ralph Waldo Emerson"],
+  ["Go confidently in the direction of your dreams. Live the life you have imagined.","Henry David Thoreau"],
+  ["What you get by achieving your goals is not as important as what you become by achieving them.","Henry David Thoreau"],
+  ["Never look back unless you are planning to go that way.","Henry David Thoreau"],
+  ["It's not what you look at that matters, it's what you see.","Henry David Thoreau"],
+  ["Things do not change; we change.","Henry David Thoreau"],
+  ["The price of anything is the amount of life you exchange for it.","Henry David Thoreau"],
+  ["That man is richest whose pleasures are cheapest.","Henry David Thoreau"],
+  ["Do not wait to strike till the iron is hot; but make it hot by striking.","William Butler Yeats"],
+  ["Happiness is not something ready made. It comes from your own actions.","Dalai Lama"],
+  ["Sleep is the best meditation.","Dalai Lama"],
+  ["Judge your success by what you had to give up in order to get it.","Dalai Lama"],
+  ["The purpose of our lives is to be happy.","Dalai Lama"],
+  ["Remember that not getting what you want is sometimes a wonderful stroke of luck.","Dalai Lama"],
+  ["An open heart is an open mind.","Dalai Lama"],
+  ["Silence is sometimes the best answer.","Dalai Lama"],
+  ["In the end, it's not the years in your life that count. It's the life in your years.","Abraham Lincoln"],
+  ["Whatever you are, be a good one.","Abraham Lincoln"],
+  ["I will prepare and some day my chance will come.","Abraham Lincoln"],
+  ["Give me six hours to chop down a tree and I will spend the first four sharpening the axe.","Abraham Lincoln"],
+  ["The best way to predict your future is to create it.","Abraham Lincoln"],
+  ["Always bear in mind that your own resolution to succeed is more important than any other.","Abraham Lincoln"],
+  ["If you want to test a man's character, give him power.","Abraham Lincoln"],
+  ["Everything comes to him who hustles while he waits.","Thomas Edison"],
+  ["The most certain way to succeed is to try just one more time.","Thomas Edison"],
+  ["There is no substitute for hard work.","Thomas Edison"],
+  ["Opportunity is missed by most people because it is dressed in overalls and looks like work.","Thomas Edison"],
+  ["What you are will show in what you do.","Thomas Edison"],
+  ["Being busy does not always mean real work.","Thomas Edison"],
+  ["The mind is everything. What you think you become.","Buddha"],
+  ["Peace comes from within. Do not seek it without.","Buddha"],
+  ["Drop by drop is the water pot filled.","Buddha"],
+  ["No one saves us but ourselves. We ourselves must walk the path.","Buddha"],
+  ["Every morning we are born again. What we do today is what matters most.","Buddha"],
+  ["Health is the greatest gift, contentment the greatest wealth.","Buddha"],
+  ["There is no path to happiness: happiness is the path.","Buddha"],
+  ["Better than a thousand hollow words, is one word that brings peace.","Buddha"],
+  ["It is to the one who endures that the final victory comes.","Buddha"],
+  ["Purity or impurity depends on oneself; no one can purify another.","Buddha"],
+  ["However many holy words you read, what good will they do if you do not act upon them?","Buddha"],
+  ["To keep the body in good health is a duty, else we cannot keep the mind strong.","Buddha"],
+  ["You only lose what you cling to.","Buddha"],
+  ["The trouble is, you think you have time.","Buddha"],
+  ["Knowing yourself is the beginning of all wisdom.","Aristotle"],
+  ["Pleasure in the job puts perfection in the work.","Aristotle"],
+  ["Through discipline comes freedom.","Aristotle"],
+  ["Patience is bitter, but its fruit is sweet.","Aristotle"],
+  ["The whole is greater than the sum of its parts.","Aristotle"],
+  ["Educating the mind without educating the heart is no education at all.","Aristotle"],
+  ["Happiness depends upon ourselves.","Aristotle"],
+  ["He who has overcome his fears will truly be free.","Aristotle"],
+  ["It is during our darkest moments that we must focus to see the light.","Aristotle"],
+  ["The roots of education are bitter, but the fruit is sweet.","Aristotle"],
+  ["You are never too old to set another goal or to dream a new dream.","C.S. Lewis"],
+  ["Hardships often prepare ordinary people for an extraordinary destiny.","C.S. Lewis"],
+  ["Getting over a painful experience is much like crossing monkey bars. You have to let go to move forward.","C.S. Lewis"],
+  ["Failures are finger posts on the road to achievement.","C.S. Lewis"],
+  ["Isn't it funny how day by day nothing changes, but when you look back everything is different.","C.S. Lewis"],
+  ["The future starts today, not tomorrow.","Pope John Paul II"],
+  ["The two most important days in your life are the day you are born and the day you find out why.","Mark Twain"],
+  ["Twenty years from now you will be more disappointed by the things you didn't do.","Mark Twain"],
+  ["The man who does not read has no advantage over the man who cannot read.","Mark Twain"],
+  ["Kindness is the language which the deaf can hear and the blind can see.","Mark Twain"],
+  ["Whenever you find yourself on the side of the majority, it is time to pause and reflect.","Mark Twain"],
+  ["Give every day the chance to become the most beautiful day of your life.","Mark Twain"],
+  ["Age is an issue of mind over matter. If you don't mind, it doesn't matter.","Mark Twain"],
+  ["The best way out is always through.","Robert Frost"],
+  ["In three words I can sum up everything I've learned about life: it goes on.","Robert Frost"],
+  ["I took the road less traveled by, and that has made all the difference.","Robert Frost"],
+  ["Freedom lies in being bold.","Robert Frost"],
+  ["Success is walking from failure to failure with no loss of enthusiasm.","Winston Churchill"],
+  ["Attitude is a little thing that makes a big difference.","Winston Churchill"],
+  ["Never, never, never give up.","Winston Churchill"],
+  ["Difficulties mastered are opportunities won.","Winston Churchill"],
+  ["Continuous effort is the key to unlocking our potential.","Winston Churchill"],
+  ["Fear of failure must never be a reason not to try something.","Frederick W. Smith"],
+  ["The only limit to our realization of tomorrow will be our doubts of today.","Franklin D. Roosevelt"],
+  ["When you reach the end of your rope, tie a knot in it and hang on.","Franklin D. Roosevelt"],
+  ["Happiness lies in the joy of achievement and the thrill of creative effort.","Franklin D. Roosevelt"],
+  ["A smooth sea never made a skilled sailor.","Franklin D. Roosevelt"],
+  ["Yesterday is not ours to recover, but tomorrow is ours to win or lose.","Lyndon B. Johnson"],
+  ["Change will not come if we wait for some other person or some other time.","Barack Obama"],
+  ["The best way to not feel hopeless is to get up and do something.","Barack Obama"],
+  ["If you're willing to keep walking, eventually you'll make progress.","Barack Obama"],
+  ["The future rewards those who press on.","Barack Obama"],
+  ["You can't let your failures define you. You have to let your failures teach you.","Barack Obama"],
+  ["Nothing in life is to be feared, it is only to be understood.","Marie Curie"],
+  ["Be less curious about people and more curious about ideas.","Marie Curie"],
+  ["I was taught that the way of progress was neither swift nor easy.","Marie Curie"],
+  ["Life is not easy for any of us. But what of that? We must have perseverance.","Marie Curie"],
+  ["Imagination is more important than knowledge.","Albert Einstein"],
+  ["In the middle of difficulty lies opportunity.","Albert Einstein"],
+  ["Life is like riding a bicycle. To keep your balance, you must keep moving.","Albert Einstein"],
+  ["Try not to become a man of success, but rather try to become a man of value.","Albert Einstein"],
+  ["A person who never made a mistake never tried anything new.","Albert Einstein"],
+  ["Learn from yesterday, live for today, hope for tomorrow.","Albert Einstein"],
+  ["It's not that I'm so smart, it's just that I stay with problems longer.","Albert Einstein"],
+  ["Weakness of attitude becomes weakness of character.","Albert Einstein"],
+  ["Once we accept our limits, we go beyond them.","Albert Einstein"],
+  ["Education is what remains after one has forgotten what one has learned in school.","Albert Einstein"],
+  ["The only source of knowledge is experience.","Albert Einstein"],
+  ["Genius is patience.","Isaac Newton"],
+  ["If I have seen further it is by standing on the shoulders of giants.","Isaac Newton"],
+  ["What we know is a drop, what we don't know is an ocean.","Isaac Newton"],
+  ["Tact is the art of making a point without making an enemy.","Isaac Newton"],
+  ["Discipline is remembering what you want most.","David Campbell"],
+  ["Willpower is a muscle. The more you use it, the stronger it gets.","Unknown"],
+  ["Excuses will always be there for you. Opportunity won't.","Unknown"],
+  ["Push yourself, because no one else is going to do it for you.","Unknown"],
+  ["Great things never come from comfort zones.","Unknown"],
+  ["Dream it. Wish it. Do it.","Unknown"],
+  ["Sometimes later becomes never. Do it now.","Unknown"],
+  ["Success doesn't just find you. You have to go out and get it.","Unknown"],
+  ["The harder you work for something, the greater you'll feel when you achieve it.","Unknown"],
+  ["Dream bigger. Do bigger.","Unknown"],
+  ["Don't stop when you're tired. Stop when you're done.","Unknown"],
+  ["Wake up with determination. Go to bed with satisfaction.","Unknown"],
+  ["Little things make big days.","Unknown"],
+  ["It's going to be hard, but hard does not mean impossible.","Unknown"],
+  ["Don't wait for opportunity. Create it.","Unknown"],
+  ["The key to success is to focus on goals, not obstacles.","Unknown"],
+  ["Discipline is built by consistently performing small acts of courage.","Robin Sharma"],
+  ["Change is hard at first, messy in the middle and gorgeous at the end.","Robin Sharma"],
+  ["Starting strong is good. Finishing strong is epic.","Robin Sharma"],
+  ["Your excuses are just the lies your fears have sold you.","Robin Sharma"],
+  ["The activity you're most avoiding contains your biggest opportunity.","Robin Sharma"],
+  ["Ordinary people have wishes. Extraordinary people have goals.","Robin Sharma"],
+  ["Success is created through the performance of a few small daily disciplines.","Robin Sharma"],
+  ["An idea not coupled with action will never get bigger than the brain cell it occupied.","Arnold Glasow"],
+  ["Success is simple. Do what's right, the right way, at the right time.","Arnold Glasow"],
+  ["Nothing will work unless you do.","Maya Angelou"],
+  ["We may encounter many defeats but we must not be defeated.","Maya Angelou"],
+  ["Do the best you can until you know better. Then when you know better, do better.","Maya Angelou"],
+  ["If you don't like something, change it. If you can't change it, change your attitude.","Maya Angelou"],
+  ["Try to be a rainbow in someone's cloud.","Maya Angelou"],
+  ["My mission in life is not merely to survive, but to thrive.","Maya Angelou"],
+  ["Success is liking yourself, liking what you do, and liking how you do it.","Maya Angelou"],
+  ["Courage is the most important of all the virtues.","Maya Angelou"],
+  ["Ask for what you want and be prepared to get it.","Maya Angelou"],
+  ["Life is measured by the moments that take our breath away.","Maya Angelou"],
+  ["It's not the load that breaks you down, it's the way you carry it.","Lou Holtz"],
+  ["Motivation determines what you do. Attitude determines how well you do it.","Lou Holtz"],
+  ["Life is ten percent what happens to you and ninety percent how you respond to it.","Lou Holtz"],
+  ["The person who says it cannot be done should not interrupt the person doing it.","Chinese proverb"],
+  ["A gem cannot be polished without friction, nor a man perfected without trials.","Chinese proverb"],
+  ["Be not afraid of growing slowly, be afraid only of standing still.","Chinese proverb"],
+  ["When the winds of change blow, some build walls while others build windmills.","Chinese proverb"],
+  ["A diamond is a piece of coal that handled stress exceptionally well.","Unknown"],
+  ["Tough times never last, but tough people do.","Robert H. Schuller"],
+  ["What would you attempt to do if you knew you could not fail?","Robert H. Schuller"],
+  ["Problems are not stop signs, they are guidelines.","Robert H. Schuller"],
+  ["Always look at what you have left. Never look at what you have lost.","Robert H. Schuller"],
+  ["You can't have a better tomorrow if you're thinking about yesterday.","Charles Kettering"],
+  ["High achievement always takes place in the framework of high expectation.","Charles Kettering"],
+  ["A problem well stated is a problem half solved.","Charles Kettering"],
+  ["Believe and act as if it were impossible to fail.","Charles Kettering"],
+  ["What is not started today is never finished tomorrow.","Johann Wolfgang von Goethe"],
+  ["Whatever you can do, or dream you can, begin it. Boldness has genius and magic in it.","Johann Wolfgang von Goethe"],
+  ["Doubt can only be removed by action.","Johann Wolfgang von Goethe"],
+  ["Everything is hard before it is easy.","Johann Wolfgang von Goethe"],
+  ["To put one's thoughts into action is the most difficult thing in the world.","Johann Wolfgang von Goethe"],
+  ["He who moves not forward, goes backward.","Johann Wolfgang von Goethe"],
+  ["The moment one definitely commits oneself, then providence moves too.","W.H. Murray"],
+  ["Screw it, let's do it.","Richard Branson"],
+  ["Business opportunities are like buses, there's always another one coming.","Richard Branson"],
+  ["The brave may not live forever, but the cautious do not live at all.","Richard Branson"],
+  ["You don't learn to walk by following rules. You learn by doing, and by falling over.","Richard Branson"],
+  ["Respect is how to treat everyone, not just those you want to impress.","Richard Branson"],
+  ["My biggest motivation? Just to keep challenging myself.","Richard Branson"],
+  ["If your dreams don't scare you, they are too small.","Richard Branson"],
+  ["Do not be embarrassed by your failures, learn from them and start again.","Richard Branson"],
+  ["The day before something is a breakthrough, it's a crazy idea.","Peter Diamandis"],
+  ["The best way to become a billionaire is to help a billion people.","Peter Diamandis"],
+  ["When given the choice between being right or being kind, choose kind.","Wayne Dyer"],
+  ["You cannot always control what goes on outside. But you can always control what goes on inside.","Wayne Dyer"],
+  ["Change the way you look at things and the things you look at change.","Wayne Dyer"],
+  ["It's never crowded along the extra mile.","Wayne Dyer"],
+  ["Doing the best at this moment puts you in the best place for the next moment.","Oprah Winfrey"],
+  ["The biggest adventure you can take is to live the life of your dreams.","Oprah Winfrey"],
+  ["Turn your wounds into wisdom.","Oprah Winfrey"],
+  ["You become what you believe.","Oprah Winfrey"],
+  ["Passion is energy. Feel the power that comes from focusing on what excites you.","Oprah Winfrey"],
+  ["Surround yourself only with people who are going to take you higher.","Oprah Winfrey"],
+  ["Real integrity is doing the right thing when nobody's going to know whether you did it.","Oprah Winfrey"],
+  ["The more you praise and celebrate your life, the more there is in life to celebrate.","Oprah Winfrey"],
+  ["Failure is another stepping stone to greatness.","Oprah Winfrey"],
+  ["Where there is no struggle, there is no strength.","Oprah Winfrey"],
+  ["Everyone has been made for some particular work, and the desire for that work is in every heart.","Rumi"],
+  ["Yesterday I was clever, so I wanted to change the world. Today I am wise, so I am changing myself.","Rumi"],
+  ["As you start to walk on the way, the way appears.","Rumi"],
+  ["The wound is the place where the light enters you.","Rumi"]
 ];
 function renderQuote(){
-  const d = todayStr();
-  let hash = 0;
-  for(let i=0;i<d.length;i++){ hash = (hash*31 + d.charCodeAt(i)) >>> 0; }
-  const [text, author] = QUOTES[hash % QUOTES.length];
+  // one quote per day of the year — all 365 cycle through, different each day
+  const now = new Date();
+  const dayOfYear = Math.floor((now - new Date(now.getFullYear(), 0, 0)) / 86400000);
+  const [text, author] = QUOTES[(dayOfYear - 1 + QUOTES.length) % QUOTES.length];
   document.getElementById('quoteText').textContent = text;
   document.getElementById('quoteAuthor').textContent = '— '+author;
 }
@@ -1816,12 +2079,18 @@ function endRoutine(){
   r.endedOn = todayStr();
   saveData(); closeModal('routineModalBg'); renderRoutine();
 }
+function popCheckbox(scopeId, id){
+  const cb = document.querySelector(`#${scopeId} [data-id="${id}"] .checkbox`);
+  if(cb){ cb.classList.add('pop'); setTimeout(()=>cb.classList.remove('pop'), 320); }
+}
 function toggleRoutine(id){
   const r = data.routines.find(x=>x.id===id);
-  if(r.history[viewDate]) delete r.history[viewDate];
-  else r.history[viewDate] = true;
+  const nowDone = !r.history[viewDate];
+  if(nowDone) r.history[viewDate] = true;
+  else delete r.history[viewDate];
   haptic();
   saveData(); renderRoutine();
+  if(nowDone) popCheckbox('routineTrack', id);
 }
 // ✕ = remove from THIS day only (past + other days untouched)
 function skipRoutineDay(id){
@@ -1899,6 +2168,7 @@ function toggleTask(id){
   t.doneAt = t.done ? nowIso() : null;
   haptic();
   saveData(); renderTasks();
+  if(t.done) popCheckbox('tasksTrack', id);
 }
 function deleteTask(id){
   data.tasks = data.tasks.filter(t=>t.id!==id);
@@ -2483,6 +2753,7 @@ function toggleNote(id){
   n.doneAt = n.done ? nowIso() : null;
   haptic();
   saveData(); renderNotes();
+  if(n.done) popCheckbox('notesList', id);
 }
 function deleteNote(id){
   if(!confirm('Delete this note?')) return;
