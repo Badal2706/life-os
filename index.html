@@ -189,9 +189,13 @@
   .carousel{position:relative;overflow:hidden;margin:0 -4px;padding:4px;}
   .track{display:flex;gap:10px;align-items:flex-start;will-change:transform;}
   .daycard{padding:12px;min-width:0;}
-  .daycard.side{flex:0 0 17%;cursor:pointer;filter:blur(1.8px);opacity:.55;transform:scale(.88);
-    transform-origin:center top;font-size:10px;max-height:320px;overflow:hidden;
+  .daycard.side{flex:0 0 30%;cursor:pointer;filter:blur(1.4px);opacity:.6;transform:scale(.96);
+    transform-origin:center top;font-size:11px;max-height:340px;overflow:hidden;
     transition:opacity .25s, filter .25s;}
+  .daycard.side.prev{margin-left:-22%;}
+  .daycard.side.next{margin-right:-22%;}
+  .daycard.side.prev .sd{text-align:right;padding-right:4px;}
+  .daycard.side.next .sd{text-align:left;padding-left:4px;}
   .daycard.side:active{opacity:.85;filter:blur(.5px);}
   .daycard.side .sd{font-size:10.5px;font-weight:700;margin-bottom:6px;text-align:center;color:#dfe9ff;}
   .daycard.side .si{padding:4px 0;border-bottom:1px solid rgba(255,255,255,.12);
@@ -269,6 +273,17 @@
   .cell.off{background:rgba(255,255,255,.05);}
   .top-places .r{display:flex;justify-content:space-between;font-size:13px;padding:5px 0;border-bottom:1px solid rgba(255,255,255,.14);}
   .top-places .r:last-child{border-bottom:none;}
+  /* custom autocomplete dropdown (shows ~4 items, scroll for the rest) */
+  .drop-list{position:absolute;left:0;right:0;top:100%;margin-top:4px;z-index:35;display:none;
+    background:rgba(45,22,90,.96);backdrop-filter:blur(18px);-webkit-backdrop-filter:blur(18px);
+    border:1px solid var(--stroke);border-radius:13px;max-height:158px;overflow-y:auto;
+    box-shadow:0 10px 26px rgba(0,0,0,.35);}
+  .drop-list.open{display:block;}
+  .drop-list div{padding:10px 13px;font-size:13.5px;cursor:pointer;border-bottom:1px solid rgba(255,255,255,.08);}
+  .drop-list div:last-child{border-bottom:none;}
+  .drop-list div:active{background:rgba(255,255,255,.12);}
+  body.light .drop-list{background:#fff;box-shadow:0 10px 26px rgba(110,80,200,.25);}
+  body.light .drop-list div{border-color:rgba(110,80,200,.12);}
 
   /* rewards */
   .reward-row{padding:10px 2px;border-bottom:1px solid rgba(255,255,255,.14);}
@@ -311,9 +326,13 @@
   .task-item{padding:9px 2px;border-bottom:1px solid rgba(255,255,255,.14);}
   .task-item:last-child{border-bottom:none;}
   .task-top{display:flex;align-items:center;gap:8px;min-width:0;}
-  .task-text{flex:1;min-width:0;font-size:14px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+  .task-text{flex:1;min-width:0;font-size:14px;white-space:normal;word-break:break-word;line-height:1.35;}
   .task-text.done{text-decoration:line-through;color:var(--muted);}
-  .task-bottom{display:flex;align-items:center;gap:6px;margin:6px 0 0 36px;flex-wrap:wrap;}
+  .task-bottom{display:flex;align-items:center;gap:6px;margin:6px 0 0 36px;flex-wrap:nowrap;overflow-x:auto;
+    -webkit-overflow-scrolling:touch;scrollbar-width:none;}
+  .task-bottom::-webkit-scrollbar{display:none;}
+  .task-bottom .chip{white-space:nowrap;flex-shrink:0;}
+  .task-bottom .danger{flex-shrink:0;}
   .chip{font-size:11px;padding:4px 9px;border-radius:20px;background:rgba(255,255,255,.14);
     border:1px solid rgba(255,255,255,.22);color:#eafff7;font-weight:600;cursor:pointer;}
   body.light .chip{color:#4a2ba0;background:rgba(120,80,220,.1);border-color:rgba(120,80,220,.25);}
@@ -488,9 +507,9 @@
         <div class="field-row">
           <div class="field"><label>Amount</label>
             <input id="expenseAmountInput" type="number" inputmode="decimal" placeholder="0"></div>
-          <div class="field" style="flex:1.5;"><label>Spent where</label>
-            <input id="expensePlaceInput" list="placesList" placeholder="e.g. Groceries">
-            <datalist id="placesList"></datalist></div>
+          <div class="field" style="flex:1.5;position:relative;"><label>Spent where</label>
+            <input id="expensePlaceInput" placeholder="e.g. Groceries" autocomplete="off">
+            <div class="drop-list" id="placeDrop"></div></div>
         </div>
         <div class="field"><label>Note (optional)</label>
           <input id="expenseNoteInput" placeholder="e.g. weekly vegetables"></div>
@@ -520,25 +539,37 @@
     </div>
   </div>
 
-  <!-- DIARY -->
+  <!-- DIARY & NOTES -->
   <div id="view-diary" class="view">
     <h1>Diary</h1>
-    <div class="sub">Write how your day went — your personal life log</div>
-    <div class="datebar">
-      <button onclick="shiftDate(-1)">‹</button>
-      <div class="dlabel"><div id="diaryDateLabel"></div><span class="tag" id="diaryTodayTag"></span></div>
-      <button onclick="shiftDate(1)">›</button>
+    <div class="sub">Daily journal & quick notes</div>
+    <div class="seg">
+      <button id="segDiary" class="active" onclick="setDiaryPage('diary')">📔 Diary</button>
+      <button id="segNotes" onclick="setDiaryPage('notes')">🗒 Notes</button>
     </div>
-    <div class="glass card">
-      <textarea id="diaryTextInput" rows="8" placeholder="How was this day? What happened, what did you feel, what did you learn…"
-        style="resize:vertical;min-height:140px;font-family:inherit;line-height:1.5;"></textarea>
-      <div class="row between" style="margin-top:10px;">
-        <span class="goal-meta" id="diarySavedAt"></span>
-        <button class="small" id="diarySaveBtn" onclick="saveDiaryEntry()">Save entry</button>
+
+    <div id="diaryDiaryPage">
+      <div class="datebar">
+        <button onclick="shiftDate(-1)">‹</button>
+        <div class="dlabel"><div id="diaryDateLabel"></div><span class="tag" id="diaryTodayTag"></span></div>
+        <button onclick="shiftDate(1)">›</button>
       </div>
+      <div class="glass card">
+        <textarea id="diaryTextInput" rows="8" placeholder="How was this day? What happened, what did you feel, what did you learn…"
+          style="resize:vertical;min-height:140px;font-family:inherit;line-height:1.5;"></textarea>
+        <div class="row between" style="margin-top:10px;">
+          <span class="goal-meta" id="diarySavedAt"></span>
+          <button class="small" id="diarySaveBtn" onclick="saveDiaryEntry()">Save entry</button>
+        </div>
+      </div>
+      <div class="section-label">Recent entries</div>
+      <div id="diaryRecentList"></div>
     </div>
-    <div class="section-label">Recent entries</div>
-    <div id="diaryRecentList"></div>
+
+    <div id="diaryNotesPage" style="display:none;">
+      <div class="fab-row"><button onclick="openNoteModal()">+ Add note</button></div>
+      <div id="notesList"></div>
+    </div>
   </div>
 
 </div>
@@ -592,6 +623,23 @@
   <h3>New task</h3>
   <div class="field"><label>Task</label>
     <input id="taskTextInput" placeholder="e.g. Call the plumber" maxlength="100"></div>
+  <label style="font-size:11.5px;color:var(--muted);display:block;margin-bottom:6px;">Time (optional)</label>
+  <div class="kind-pick" style="grid-template-columns:repeat(4,1fr);">
+    <button id="nt-none" class="active" onclick="setNewTimeType('none')">None</button>
+    <button id="nt-at" onclick="setNewTimeType('at')">At time</button>
+    <button id="nt-range" onclick="setNewTimeType('range')">Range</button>
+    <button id="nt-dur" onclick="setNewTimeType('dur')">Duration</button>
+  </div>
+  <div class="field" id="ntAtField" style="display:none;">
+    <label>At what time?</label><input id="ntAtInput" type="time"></div>
+  <div class="field-row" id="ntRangeField" style="display:none;">
+    <div class="field"><label>From</label><input id="ntFromInput" type="time"></div>
+    <div class="field"><label>To</label><input id="ntToInput" type="time"></div>
+  </div>
+  <div class="field-row" id="ntDurField" style="display:none;">
+    <div class="field"><label>Hours</label><input id="ntHInput" type="number" min="0" placeholder="0"></div>
+    <div class="field"><label>Minutes</label><input id="ntMInput" type="number" min="0" placeholder="0"></div>
+  </div>
   <div class="modal-actions">
     <button class="ghost" onclick="closeModal('taskModalBg')">Cancel</button>
     <button onclick="saveTask()">Save</button>
@@ -681,6 +729,20 @@
   <div class="modal-actions">
     <button class="ghost" onclick="closeModal('goalEditModalBg')">Cancel</button>
     <button onclick="saveGoalEdit()">Save changes</button>
+  </div>
+</div></div>
+
+<!-- Note modal -->
+<div class="modal-bg" id="noteModalBg"><div class="modal">
+  <h3 id="noteModalTitle">New note</h3>
+  <div class="field"><label>Title (optional)</label>
+    <input id="noteTitleInput" placeholder="e.g. Ideas for the weekend" maxlength="80"></div>
+  <div class="field"><label>Note</label>
+    <textarea id="noteTextInput" rows="6" maxlength="4000" placeholder="Write the details here…"
+      style="resize:vertical;min-height:110px;font-family:inherit;line-height:1.5;"></textarea></div>
+  <div class="modal-actions">
+    <button class="ghost" onclick="closeModal('noteModalBg')">Cancel</button>
+    <button onclick="saveNote()">Save</button>
   </div>
 </div></div>
 
@@ -901,6 +963,7 @@ function normalizeData(d){
     expenses: d.expenses || [],
     earnings: d.earnings || [],
     diary: d.diary || {},
+    notes: d.notes || [],
     profile: d.profile || {},
     rewards: d.rewards || []
   };
@@ -1198,6 +1261,14 @@ function switchView(v){
   viewDate = todayStr();
   goalPage = 'short';
   moneyPage = 'spend';
+  if(typeof diaryPage !== 'undefined'){
+    diaryPage = 'diary';
+    document.getElementById('segDiary')?.classList.add('active');
+    document.getElementById('segNotes')?.classList.remove('active');
+    const dp = document.getElementById('diaryDiaryPage'), np = document.getElementById('diaryNotesPage');
+    if(dp) dp.style.display = 'block';
+    if(np) np.style.display = 'none';
+  }
   gridMonthOffset = 0;
   moneyMonthOffset = 0;
   document.querySelectorAll('.view').forEach(el=>el.classList.remove('active'));
@@ -1527,6 +1598,22 @@ function saveRoutine(){
   const block = parseInt(document.getElementById('routineBlockInput').value);
   if(editingRoutineId){
     const r = data.routines.find(x=>x.id===editingRoutineId);
+    if(name !== r.name){
+      const renameEverywhere = confirm(
+        `Rename "${r.name}" → "${name}"?\n\n`+
+        `OK — rename the whole history (past days too)\n`+
+        `Cancel — keep the past as "${r.name}"; "${name}" starts as a NEW routine from today and the old one ends today`);
+      if(!renameEverywhere){
+        r.endedOn = todayStr();
+        data.routines.push({
+          id:uid(), name, block, history:{}, skipDates:{},
+          dayHistory:[{from: todayStr(), days: [...chipDays]}],
+          startedOn: todayStr(), endedOn: null, gaps: [], createdAt: nowIso()
+        });
+        saveData(); closeModal('routineModalBg'); renderRoutine();
+        return;
+      }
+    }
     r.name = name;
     r.block = block;
     const cur = daysFor(r, todayStr());
@@ -1581,7 +1668,7 @@ function sideDayCardRoutine(dateStr, dir){
     const done = !!r.history[dateStr];
     return `<div class="si ${done?'done':''}">${done?'✓ ':''}${escapeHtml(r.name)}</div>`;
   }).join('');
-  return `<div class="glass daycard side" onclick="shiftDate(${dir})">
+  return `<div class="glass daycard side ${dir<0?'prev':'next'}" onclick="shiftDate(${dir})">
     <div class="sd">${shortDateLabel(dateStr)}</div>${items || '<div class="si">—</div>'}
   </div>`;
 }
@@ -1623,12 +1710,20 @@ function renderRoutine(){
 // ---------- TASKS ----------
 function openTaskModal(){
   document.getElementById('taskTextInput').value='';
+  ['ntAtInput','ntFromInput','ntToInput','ntHInput','ntMInput'].forEach(id=>{
+    document.getElementById(id).value='';
+  });
+  setNewTimeType('none');
   openModal('taskModalBg');
 }
 function saveTask(){
   const text = requireText('taskTextInput', 'Write what the task is — e.g. "Call the plumber"');
   if(!text) return;
-  data.tasks.push({id:uid(), text, date:viewDate, done:false, createdAt: nowIso()});
+  const res = readTimeInputs('nt', newTimeType);
+  if(!res.ok) return;
+  const t = {id:uid(), text, date:viewDate, done:false, createdAt: nowIso()};
+  if(res.time) t.time = res.time;
+  data.tasks.push(t);
   saveData(); closeModal('taskModalBg'); renderTasks();
 }
 function toggleTask(id){
@@ -1650,7 +1745,7 @@ function sideDayCardTasks(dateStr, dir){
   const items = data.tasks.filter(t=>t.date===dateStr).slice(0,6).map(t=>
     `<div class="si ${t.done?'done':''}">${t.done?'✓ ':''}${escapeHtml(t.text)}</div>`
   ).join('');
-  return `<div class="glass daycard side" onclick="shiftDate(${dir})">
+  return `<div class="glass daycard side ${dir<0?'prev':'next'}" onclick="shiftDate(${dir})">
     <div class="sd">${shortDateLabel(dateStr)}</div>${items || '<div class="si">—</div>'}
   </div>`;
 }
@@ -1700,7 +1795,7 @@ function taskTimeLabel(t){
   }
   return '';
 }
-let timeTaskId = null, timeType = 'none';
+let timeTaskId = null, timeType = 'none', newTimeType = 'none';
 function setTimeType(ty){
   timeType = ty;
   ['none','at','range','dur'].forEach(x=>{
@@ -1709,6 +1804,40 @@ function setTimeType(ty){
   document.getElementById('ttAtField').style.display = ty==='at' ? 'block' : 'none';
   document.getElementById('ttRangeField').style.display = ty==='range' ? 'flex' : 'none';
   document.getElementById('ttDurField').style.display = ty==='dur' ? 'flex' : 'none';
+}
+function setNewTimeType(ty){
+  newTimeType = ty;
+  ['none','at','range','dur'].forEach(x=>{
+    document.getElementById('nt-'+x).classList.toggle('active', x===ty);
+  });
+  document.getElementById('ntAtField').style.display = ty==='at' ? 'block' : 'none';
+  document.getElementById('ntRangeField').style.display = ty==='range' ? 'flex' : 'none';
+  document.getElementById('ntDurField').style.display = ty==='dur' ? 'flex' : 'none';
+}
+// Reads time inputs with the given id prefix ('tt' or 'nt').
+// Returns {ok:true, time} — minutes over 60 automatically roll into hours.
+function readTimeInputs(prefix, type){
+  if(type==='none') return {ok:true, time:null};
+  if(type==='at'){
+    const at = document.getElementById(prefix+'AtInput').value;
+    if(!at){ fieldError(prefix+'AtInput','Pick a time'); return {ok:false}; }
+    return {ok:true, time:{type:'at', at}};
+  }
+  if(type==='range'){
+    const from = document.getElementById(prefix+'FromInput').value;
+    const to = document.getElementById(prefix+'ToInput').value;
+    if(!from){ fieldError(prefix+'FromInput','Pick a start time'); return {ok:false}; }
+    if(!to){ fieldError(prefix+'ToInput','Pick an end time'); return {ok:false}; }
+    return {ok:true, time:{type:'range', from, to}};
+  }
+  if(type==='dur'){
+    let h = parseInt(document.getElementById(prefix+'HInput').value)||0;
+    let m = parseInt(document.getElementById(prefix+'MInput').value)||0;
+    if(h===0 && m===0){ fieldError(prefix+'HInput','Enter how long this will take'); return {ok:false}; }
+    const mins = h*60 + m; // 1h 90m becomes 2h 30m automatically
+    return {ok:true, time:{type:'dur', mins}};
+  }
+  return {ok:true, time:null};
 }
 function openTaskTimeModal(id){
   timeTaskId = id;
@@ -1725,23 +1854,9 @@ function openTaskTimeModal(id){
 function saveTaskTime(){
   const t = data.tasks.find(x=>x.id===timeTaskId);
   if(!t) return;
-  if(timeType==='none'){ delete t.time; }
-  else if(timeType==='at'){
-    const at = document.getElementById('ttAtInput').value;
-    if(!at){ fieldError('ttAtInput','Pick a time'); return; }
-    t.time = {type:'at', at};
-  } else if(timeType==='range'){
-    const from = document.getElementById('ttFromInput').value;
-    const to = document.getElementById('ttToInput').value;
-    if(!from){ fieldError('ttFromInput','Pick a start time'); return; }
-    if(!to){ fieldError('ttToInput','Pick an end time'); return; }
-    t.time = {type:'range', from, to};
-  } else if(timeType==='dur'){
-    const h = parseInt(document.getElementById('ttHInput').value)||0;
-    const m = parseInt(document.getElementById('ttMInput').value)||0;
-    if(h===0 && m===0){ fieldError('ttHInput','Enter how long this will take'); return; }
-    t.time = {type:'dur', mins: h*60+m};
-  }
+  const res = readTimeInputs('tt', timeType);
+  if(!res.ok) return;
+  if(res.time) t.time = res.time; else delete t.time;
   saveData(); closeModal('taskTimeModalBg'); renderTasks();
 }
 
@@ -1837,9 +1952,12 @@ function openProgressModal(goalId){
 function submitProgress(){
   const g = data.goals.find(x=>x.id===progressGoalId);
   if(!g) return;
-  const val = parseFloat(document.getElementById('progressValueInput').value);
-  if(isNaN(val) || val<0){ fieldError('progressValueInput', 'Enter a number — e.g. 50'); return; }
   const meta = KIND_META[g.kind] || KIND_META.simple;
+  const val = parseFloat(document.getElementById('progressValueInput').value);
+  if(isNaN(val) || (meta.absolute ? val<0 : val<=0)){
+    fieldError('progressValueInput', meta.absolute ? 'Enter a number — e.g. 50' : 'Enter an amount greater than 0');
+    return;
+  }
   const before = g.current || 0;
   if(meta.absolute){ g.current = Math.min(val, g.target); }
   else { g.current = Math.min(before + val, g.target); }
@@ -1921,11 +2039,13 @@ function markLogDeleted(logId){
   const g = data.goals.find(x=>x.id===editGoalId);
   renderGoalEditLogs(g);
 }
-function recomputeGoal(g){
+function recomputeGoal(g, resetIfEmpty){
   const meta = KIND_META[g.kind] || KIND_META.simple;
   const logs = g.log || [];
   if(logs.length === 0){
-    g.current = Math.min(g.current||0, g.target);
+    // if the user deleted all log entries, progress goes back to zero;
+    // otherwise (e.g. old migrated goals that never had logs) keep the value
+    g.current = resetIfEmpty ? 0 : Math.min(g.current||0, g.target);
   } else if(meta.absolute){
     g.current = Math.min(logs[logs.length-1].value, g.target);
     let run = 0;
@@ -1958,7 +2078,7 @@ function saveGoalEdit(){
       if(!isNaN(v) && v>=0) le.value = v;
     }
   });
-  recomputeGoal(g);
+  recomputeGoal(g, editDeletedLogIds.length > 0);
   saveData(); closeModal('goalEditModalBg'); renderGoals();
   showToast('✅ Goal updated');
 }
@@ -2019,8 +2139,6 @@ function renderMoney(){
   document.getElementById('moneyDateLabel').textContent = niceDateLabel(viewDate);
   document.getElementById('moneyTodayTag').textContent = viewDate===todayStr() ? '● Today' : '';
 
-  const places = [...new Set(data.expenses.map(e=>e.place))];
-  document.getElementById('placesList').innerHTML = places.map(p=>`<option value="${escapeAttr(p)}">`).join('');
   const todaysE = data.expenses.filter(e=>e.date===viewDate);
   document.getElementById('dayTotalAmt').textContent = rupee(todaysE.reduce((s,e)=>s+e.amount,0));
   document.getElementById('expenseList').innerHTML = todaysE.length
@@ -2053,8 +2171,61 @@ function renderMoney(){
     : '<div class="empty">No earnings logged this month.</div>';
 }
 
-// ---------- DIARY ----------
+// ---------- DIARY & NOTES ----------
+let diaryPage = 'diary';
+function setDiaryPage(p){
+  diaryPage = p;
+  document.getElementById('segDiary').classList.toggle('active', p==='diary');
+  document.getElementById('segNotes').classList.toggle('active', p==='notes');
+  document.getElementById('diaryDiaryPage').style.display = p==='diary' ? 'block' : 'none';
+  document.getElementById('diaryNotesPage').style.display = p==='notes' ? 'block' : 'none';
+  if(p==='notes') renderNotes();
+}
+let editingNoteId = null;
+function openNoteModal(id){
+  editingNoteId = id || null;
+  const n = id ? data.notes.find(x=>x.id===id) : null;
+  document.getElementById('noteModalTitle').textContent = n ? 'Edit note' : 'New note';
+  document.getElementById('noteTitleInput').value = n ? (n.title||'') : '';
+  document.getElementById('noteTextInput').value = n ? n.text : '';
+  openModal('noteModalBg');
+}
+function saveNote(){
+  const text = document.getElementById('noteTextInput').value.trim();
+  if(!text){ fieldError('noteTextInput', 'Write something in the note'); return; }
+  const title = document.getElementById('noteTitleInput').value.trim();
+  if(editingNoteId){
+    const n = data.notes.find(x=>x.id===editingNoteId);
+    if(n){ n.title = title; n.text = text; n.updatedAt = nowIso(); }
+  } else {
+    data.notes.push({id:uid(), title, text, createdAt: nowIso(), updatedAt: nowIso()});
+  }
+  saveData(); closeModal('noteModalBg'); renderNotes();
+}
+function deleteNote(id){
+  if(!confirm('Delete this note?')) return;
+  data.notes = data.notes.filter(n=>n.id!==id);
+  saveData(); renderNotes();
+}
+function renderNotes(){
+  const el = document.getElementById('notesList');
+  const notes = (data.notes||[]).slice().sort((a,b)=>(b.updatedAt||'').localeCompare(a.updatedAt||''));
+  el.innerHTML = notes.length
+    ? notes.map(n=>`<div class="glass card">
+        <div class="row between" style="align-items:flex-start;">
+          <div style="flex:1;min-width:0;cursor:pointer;" onclick="openNoteModal('${n.id}')">
+            ${n.title?`<div class="goal-title" style="font-size:14px;">${escapeHtml(n.title)}</div>`:''}
+            <div style="font-size:13.5px;line-height:1.5;margin-top:${n.title?'5px':'0'};white-space:pre-wrap;word-break:break-word;">${escapeHtml(n.text)}</div>
+            <div class="goal-meta" style="margin-top:7px;">✏️ ${fmtDateTime(n.updatedAt)}</div>
+          </div>
+          <button class="danger" onclick="deleteNote('${n.id}')">✕</button>
+        </div>
+      </div>`).join('')
+    : '<div class="empty">No notes yet.<br>Jot down anything you must not forget.</div>';
+}
+
 function renderDiary(){
+  if(diaryPage==='notes'){ renderNotes(); }
   document.getElementById('diaryDateLabel').textContent = niceDateLabel(viewDate);
   document.getElementById('diaryTodayTag').textContent = viewDate===todayStr() ? '● Today' : '';
   const entry = data.diary[viewDate];
@@ -2442,6 +2613,38 @@ setTimeout(maybeWeeklyBackup, 2500);
 ['view-routine','view-tasks','view-money','view-diary'].forEach(id=>{
   attachSwipe(document.getElementById(id));
 });
+
+// ---------- place autocomplete dropdown (scrollable, remembers every place) ----------
+(function setupPlaceDropdown(){
+  const input = document.getElementById('expensePlaceInput');
+  const drop = document.getElementById('placeDrop');
+  if(!input || !drop) return;
+  function show(){
+    const q = input.value.trim().toLowerCase();
+    // most-recent first, unique, filtered by typed text
+    const seen = new Set();
+    const places = [];
+    data.expenses.slice().reverse().forEach(e=>{
+      const key = e.place.toLowerCase();
+      if(!seen.has(key)){ seen.add(key); places.push(e.place); }
+    });
+    const matches = places.filter(p=>!q || p.toLowerCase().includes(q));
+    if(matches.length===0){ drop.classList.remove('open'); return; }
+    drop.innerHTML = matches.map(p=>`<div data-place="${escapeAttr(p)}">${escapeHtml(p)}</div>`).join('');
+    drop.classList.add('open');
+  }
+  input.addEventListener('focus', show);
+  input.addEventListener('input', show);
+  input.addEventListener('blur', ()=>setTimeout(()=>drop.classList.remove('open'), 180));
+  drop.addEventListener('pointerdown', (e)=>{
+    const item = e.target.closest('[data-place]');
+    if(item){
+      input.value = item.dataset.place;
+      drop.classList.remove('open');
+      e.preventDefault();
+    }
+  });
+})();
 
 // ---------- PWA ----------
 if ('serviceWorker' in navigator) {
