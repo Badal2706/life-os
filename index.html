@@ -189,9 +189,9 @@
   .carousel{position:relative;overflow:hidden;margin:0 -4px;padding:4px;}
   .track{display:flex;gap:10px;align-items:flex-start;will-change:transform;}
   .daycard{padding:12px;min-width:0;}
-  .daycard.side{flex:0 0 30%;cursor:pointer;filter:blur(1.4px);opacity:.6;transform:scale(.96);
-    transform-origin:center top;font-size:11px;max-height:340px;overflow:hidden;
-    transition:opacity .25s, filter .25s;}
+  .daycard.side{flex:0 0 30%;cursor:pointer;filter:blur(1.4px);opacity:.6;transform:scale(.84);
+    transform-origin:center top;font-size:12px;max-height:340px;overflow:hidden;
+    transition:opacity .3s, filter .3s, transform .3s;}
   .daycard.side.prev{margin-left:-22%;}
   .daycard.side.next{margin-right:-22%;}
   .daycard.side.prev .sd{text-align:right;padding-right:4px;}
@@ -295,6 +295,19 @@
   .modal-bg{position:fixed;inset:0;background:rgba(4,20,60,.5);backdrop-filter:blur(6px);
     display:none;align-items:flex-end;justify-content:center;z-index:60;}
   .modal-bg.open{display:flex;}
+  .modal-bg.open .modal{animation:rise .32s cubic-bezier(.22,.9,.32,1);}
+  @keyframes rise{from{transform:translateY(48px);opacity:.5;}to{transform:translateY(0);opacity:1;}}
+  .checkbox.done{animation:pop .28s cubic-bezier(.3,1.6,.5,1);}
+  @keyframes pop{0%{transform:scale(.6);}60%{transform:scale(1.18);}100%{transform:scale(1);}}
+  .tab{transition:background .22s, color .22s, transform .15s;}
+  .tab:active{transform:scale(.93);}
+  button{transition:transform .12s, filter .2s;}
+  button:active{transform:scale(.96);filter:brightness(1.1);}
+  .glass.card{transition:box-shadow .3s;}
+  .quote-card{font-style:italic;position:relative;padding:18px 16px 14px;}
+  .quote-card .q-mark{position:absolute;top:2px;left:12px;font-size:44px;opacity:.25;font-family:Georgia,serif;font-style:normal;}
+  .quote-card .q-text{font-size:14.5px;line-height:1.6;padding-left:6px;}
+  .quote-card .q-author{margin-top:8px;text-align:right;font-size:12px;color:var(--muted);font-style:normal;font-weight:600;}
   .modal{background:rgba(255,255,255,.16);backdrop-filter:blur(30px) saturate(1.5);-webkit-backdrop-filter:blur(30px) saturate(1.5);
     border:1px solid rgba(255,255,255,.3);border-bottom:none;width:100%;max-width:560px;
     border-radius:24px 24px 0 0;padding:20px;padding-bottom:calc(20px + env(safe-area-inset-bottom));
@@ -419,6 +432,12 @@
     <h1 id="homeGreeting">Home</h1>
     <div class="sub" id="homeDateLine"></div>
     <div class="bento" id="bentoGrid"></div>
+
+    <div class="glass card quote-card" id="quoteCard">
+      <span class="q-mark">"</span>
+      <div class="q-text" id="quoteText"></div>
+      <div class="q-author" id="quoteAuthor"></div>
+    </div>
 
     <div class="section-label">🎁 Rewards</div>
     <div class="glass card" id="rewardsCard"></div>
@@ -1056,12 +1075,27 @@ function attachDrag(container, onDrop){
       const startIndex = items.indexOf(item);
       const itemH = item.getBoundingClientRect().height;
       const startY = e.clientY;
+      const startX = e.clientX;
       let newIndex = startIndex;
+      let axis = null; // lock to vertical only — sideways press does nothing
       item.classList.add('dragging');
       if(navigator.vibrate) navigator.vibrate(15);
 
+      const cancelDrag = ()=>{
+        document.removeEventListener('pointermove', move);
+        document.removeEventListener('pointerup', up);
+        item.classList.remove('dragging');
+        item.style.transform = '';
+        items.forEach(sib=>{ sib.style.transform=''; });
+      };
       const move = (ev)=>{
         const dy = ev.clientY - startY;
+        const dxm = ev.clientX - startX;
+        if(axis === null && (Math.abs(dy) > 7 || Math.abs(dxm) > 7)){
+          axis = Math.abs(dy) >= Math.abs(dxm) ? 'v' : 'h';
+          if(axis === 'h'){ cancelDrag(); return; }
+        }
+        if(axis !== 'v') return;
         // dragged item floats with the pointer, slightly enlarged
         item.style.transform = `translateY(${dy}px) scale(1.03)`;
         // which slot is it hovering over?
@@ -1079,8 +1113,9 @@ function attachDrag(container, onDrop){
         document.removeEventListener('pointermove', move);
         document.removeEventListener('pointerup', up);
         item.classList.remove('dragging');
+        item.style.transform = '';
         items.forEach(sib=>{ sib.style.transform=''; });
-        if(newIndex !== startIndex){
+        if(axis === 'v' && newIndex !== startIndex){
           const ids = items.map(x=>x.dataset.id);
           ids.splice(newIndex, 0, ids.splice(startIndex,1)[0]);
           if(navigator.vibrate) navigator.vibrate(20);
@@ -1336,9 +1371,9 @@ function animateTracks(delta){
     el.style.transform = `translateX(${delta>0 ? dist : -dist}px)`;
     if(main){
       main.style.transition = 'none';
-      main.style.transform = 'scale(.88)';
+      main.style.transform = 'scale(.84)';
       main.style.opacity = '.6';
-      main.style.filter = 'blur(1.2px)';
+      main.style.filter = 'blur(1.4px)';
     }
     requestAnimationFrame(()=>{ requestAnimationFrame(()=>{
       el.style.transition = 'transform .42s cubic-bezier(.25,.9,.3,1)';
@@ -1355,8 +1390,121 @@ function animateTracks(delta){
   if(!any) sliding = false;
 }
 
+// ---------- daily quote (built-in library, rotates by date) ----------
+const QUOTES = [
+  ["Discipline is choosing between what you want now and what you want most.","Abraham Lincoln"],
+  ["We are what we repeatedly do. Excellence, then, is not an act, but a habit.","Aristotle"],
+  ["The secret of getting ahead is getting started.","Mark Twain"],
+  ["It always seems impossible until it's done.","Nelson Mandela"],
+  ["Success is the sum of small efforts, repeated day in and day out.","Robert Collier"],
+  ["Do something today that your future self will thank you for.","Sean Patrick Flanery"],
+  ["You do not rise to the level of your goals. You fall to the level of your systems.","James Clear"],
+  ["Motivation gets you going, but discipline keeps you growing.","John C. Maxwell"],
+  ["A year from now you may wish you had started today.","Karen Lamb"],
+  ["The best time to plant a tree was 20 years ago. The second best time is now.","Chinese proverb"],
+  ["Small daily improvements over time lead to stunning results.","Robin Sharma"],
+  ["Don't count the days, make the days count.","Muhammad Ali"],
+  ["Hard choices, easy life. Easy choices, hard life.","Jerzy Gregorek"],
+  ["Your future is created by what you do today, not tomorrow.","Robert Kiyosaki"],
+  ["The pain of discipline weighs ounces; the pain of regret weighs tons.","Jim Rohn"],
+  ["He who conquers himself is the mightiest warrior.","Confucius"],
+  ["Waste no more time arguing what a good man should be. Be one.","Marcus Aurelius"],
+  ["Well begun is half done.","Aristotle"],
+  ["First we make our habits, then our habits make us.","John Dryden"],
+  ["What you do every day matters more than what you do once in a while.","Gretchen Rubin"],
+  ["Success is not final, failure is not fatal: it is the courage to continue that counts.","Winston Churchill"],
+  ["The way to get started is to quit talking and begin doing.","Walt Disney"],
+  ["Dream big. Start small. Act now.","Robin Sharma"],
+  ["Either you run the day or the day runs you.","Jim Rohn"],
+  ["Lost time is never found again.","Benjamin Franklin"],
+  ["A river cuts through rock not because of its power, but because of its persistence.","James N. Watkins"],
+  ["You miss 100% of the shots you don't take.","Wayne Gretzky"],
+  ["Whether you think you can or you think you can't, you're right.","Henry Ford"],
+  ["Fall seven times, stand up eight.","Japanese proverb"],
+  ["Great things are done by a series of small things brought together.","Vincent Van Gogh"],
+  ["If you get tired, learn to rest, not to quit.","Banksy"],
+  ["Action is the foundational key to all success.","Pablo Picasso"],
+  ["The man who moves a mountain begins by carrying away small stones.","Confucius"],
+  ["Quality is not an act, it is a habit.","Aristotle"],
+  ["Focus on being productive instead of busy.","Tim Ferriss"],
+  ["You don't have to be great to start, but you have to start to be great.","Zig Ziglar"],
+  ["Energy and persistence conquer all things.","Benjamin Franklin"],
+  ["It is not the mountain we conquer, but ourselves.","Edmund Hillary"],
+  ["Every action you take is a vote for the type of person you wish to become.","James Clear"],
+  ["Someday is not a day of the week.","Janet Dailey"],
+  ["The difference between who you are and who you want to be is what you do.","Bill Phillips"],
+  ["Little by little, one travels far.","J.R.R. Tolkien"],
+  ["Do the hard jobs first. The easy jobs will take care of themselves.","Dale Carnegie"],
+  ["Don't watch the clock; do what it does. Keep going.","Sam Levenson"],
+  ["Rule your mind or it will rule you.","Horace"],
+  ["An investment in knowledge pays the best interest.","Benjamin Franklin"],
+  ["Never give up on a dream just because of the time it will take to accomplish it. The time will pass anyway.","Earl Nightingale"],
+  ["Success usually comes to those who are too busy to be looking for it.","Henry David Thoreau"],
+  ["Continuous improvement is better than delayed perfection.","Mark Twain"],
+  ["What we fear doing most is usually what we most need to do.","Tim Ferriss"],
+  ["Courage is resistance to fear, mastery of fear — not absence of fear.","Mark Twain"],
+  ["Genius is 1% inspiration and 99% perspiration.","Thomas Edison"],
+  ["I have not failed. I've just found 10,000 ways that won't work.","Thomas Edison"],
+  ["If you're going through hell, keep going.","Winston Churchill"],
+  ["The only way to do great work is to love what you do.","Steve Jobs"],
+  ["Your time is limited, so don't waste it living someone else's life.","Steve Jobs"],
+  ["It does not matter how slowly you go as long as you do not stop.","Confucius"],
+  ["Everything you've ever wanted is on the other side of fear.","George Addair"],
+  ["Believe you can and you're halfway there.","Theodore Roosevelt"],
+  ["Do what you can, with what you have, where you are.","Theodore Roosevelt"],
+  ["Comparison is the thief of joy.","Theodore Roosevelt"],
+  ["Discipline equals freedom.","Jocko Willink"],
+  ["Don't wish it were easier. Wish you were better.","Jim Rohn"],
+  ["Wealth consists not in having great possessions, but in having few wants.","Epictetus"],
+  ["No man is free who is not master of himself.","Epictetus"],
+  ["Luck is what happens when preparation meets opportunity.","Seneca"],
+  ["It is not that we have a short time to live, but that we waste a lot of it.","Seneca"],
+  ["Begin at once to live, and count each separate day as a separate life.","Seneca"],
+  ["The impediment to action advances action. What stands in the way becomes the way.","Marcus Aurelius"],
+  ["Very little is needed to make a happy life; it is all within yourself.","Marcus Aurelius"],
+  ["You have power over your mind — not outside events. Realize this, and you will find strength.","Marcus Aurelius"],
+  ["A goal without a plan is just a wish.","Antoine de Saint-Exupéry"],
+  ["Simplicity is the ultimate sophistication.","Leonardo da Vinci"],
+  ["Knowing is not enough; we must apply. Willing is not enough; we must do.","Bruce Lee"],
+  ["I fear not the man who has practiced 10,000 kicks once, but the man who has practiced one kick 10,000 times.","Bruce Lee"],
+  ["Long-term consistency beats short-term intensity.","Bruce Lee"],
+  ["Absorb what is useful, discard what is not, add what is uniquely your own.","Bruce Lee"],
+  ["The successful warrior is the average man, with laser-like focus.","Bruce Lee"],
+  ["Arise, awake, and stop not till the goal is reached.","Swami Vivekananda"],
+  ["Take up one idea. Make that one idea your life.","Swami Vivekananda"],
+  ["All power is within you; you can do anything.","Swami Vivekananda"],
+  ["Dream is not that which you see while sleeping, it is something that does not let you sleep.","A.P.J. Abdul Kalam"],
+  ["If you want to shine like a sun, first burn like a sun.","A.P.J. Abdul Kalam"],
+  ["Excellence is a continuous process and not an accident.","A.P.J. Abdul Kalam"],
+  ["Man needs his difficulties because they are necessary to enjoy success.","A.P.J. Abdul Kalam"],
+  ["Be the change that you wish to see in the world.","Mahatma Gandhi"],
+  ["Live as if you were to die tomorrow. Learn as if you were to live forever.","Mahatma Gandhi"],
+  ["Strength does not come from physical capacity. It comes from an indomitable will.","Mahatma Gandhi"],
+  ["The future depends on what you do today.","Mahatma Gandhi"],
+  ["When you want something, all the universe conspires in helping you to achieve it.","Paulo Coelho"],
+  ["One day or day one. You decide.","Unknown"],
+  ["Progress, not perfection.","Unknown"],
+  ["Discipline is doing it even when you don't feel like it.","Unknown"],
+  ["Show up. Especially on the days you don't want to.","Unknown"],
+  ["Your habits decide your future. Choose them wisely.","Unknown"],
+  ["Slow progress is still progress.","Unknown"],
+  ["Be stronger than your strongest excuse.","Unknown"],
+  ["Work in silence, let success make the noise.","Unknown"],
+  ["Consistency is what transforms average into excellence.","Unknown"],
+  ["Six months of focus can put you five years ahead.","Unknown"]
+];
+function renderQuote(){
+  const d = todayStr();
+  let hash = 0;
+  for(let i=0;i<d.length;i++){ hash = (hash*31 + d.charCodeAt(i)) >>> 0; }
+  const [text, author] = QUOTES[hash % QUOTES.length];
+  document.getElementById('quoteText').textContent = text;
+  document.getElementById('quoteAuthor').textContent = '— '+author;
+}
+
 // ---------- HOME ----------
 function renderHome(){
+  renderQuote();
   const t = todayStr();
   const hour = new Date().getHours();
   const greet = hour<12 ? 'Good morning' : hour<17 ? 'Good afternoon' : 'Good evening';
@@ -1906,13 +2054,47 @@ function attachCarouselSwipe(carousel){
   carousel.__cswipe = true;
   let sx=0, sy=0, dx=0, active=false, horizontal=null, startT=0, lastX=0, lastT=0, vel=0;
   const track = ()=>carousel.querySelector('.track');
+  const cardsOf = (tr)=>({
+    main: tr.querySelector('.daycard.main'),
+    prev: tr.querySelector('.daycard.side.prev'),
+    next: tr.querySelector('.daycard.side.next')
+  });
+  // progressively morph cards as the finger drags:
+  // incoming side card un-blurs & grows to full size, main card shrinks & blurs
+  const applyProgress = (tr, p, dirNext)=>{
+    const c = cardsOf(tr);
+    const incoming = dirNext ? c.next : c.prev;
+    const outgoing = dirNext ? c.prev : c.next;
+    if(c.main){
+      c.main.style.transform = `scale(${1 - .16*p})`;
+      c.main.style.filter = `blur(${(1.4*p).toFixed(2)}px)`;
+      c.main.style.opacity = String(1 - .4*p);
+    }
+    if(incoming){
+      incoming.style.transform = `scale(${.84 + .16*p})`;
+      incoming.style.filter = `blur(${(1.4*(1-p)).toFixed(2)}px)`;
+      incoming.style.opacity = String(.6 + .4*p);
+    }
+    if(outgoing){
+      outgoing.style.opacity = String(.6*(1-p*.5));
+    }
+  };
+  const clearCardStyles = (tr, animate)=>{
+    tr.querySelectorAll('.daycard').forEach(el=>{
+      el.style.transition = animate ? 'transform .3s, filter .3s, opacity .3s' : 'none';
+      el.style.transform = ''; el.style.filter = ''; el.style.opacity = '';
+    });
+  };
   carousel.addEventListener('touchstart', (e)=>{
     if(sliding) return;
     sx = lastX = e.touches[0].clientX; sy = e.touches[0].clientY;
     dx = 0; active = true; horizontal = null; vel = 0;
     startT = lastT = Date.now();
     const tr = track();
-    if(tr) tr.style.transition = 'none';
+    if(tr){
+      tr.style.transition = 'none';
+      tr.querySelectorAll('.daycard').forEach(el=>{ el.style.transition = 'none'; });
+    }
   }, {passive:true});
   carousel.addEventListener('touchmove', (e)=>{
     if(!active) return;
@@ -1928,7 +2110,11 @@ function attachCarouselSwipe(carousel){
       if(now - lastT > 0){ vel = (x - lastX)/(now - lastT); }
       lastX = x; lastT = now;
       const tr = track();
-      if(tr) tr.style.transform = `translateX(${dx}px)`;
+      if(tr){
+        tr.style.transform = `translateX(${dx}px)`;
+        const p = Math.min(1, Math.abs(dx)/(carousel.clientWidth*0.38));
+        applyProgress(tr, p, dx < 0);
+      }
     }
   }, {passive:false});
   carousel.addEventListener('touchend', ()=>{
@@ -1944,13 +2130,22 @@ function attachCarouselSwipe(carousel){
       haptic(15);
       tr.style.transition = 'transform .18s ease-out';
       tr.style.transform = `translateX(${dir>0 ? -w*0.55 : w*0.55}px)`;
+      const c = cardsOf(tr);
+      const incoming = dir>0 ? c.next : c.prev;
+      if(incoming){
+        incoming.style.transition = 'transform .18s, filter .18s, opacity .18s';
+        incoming.style.transform = 'scale(1)';
+        incoming.style.filter = 'blur(0)';
+        incoming.style.opacity = '1';
+      }
       setTimeout(()=>{
         sliding = false;
         shiftDate(dir);
       }, 170);
     } else {
-      tr.style.transition = 'transform .28s cubic-bezier(.25,.9,.3,1)';
+      tr.style.transition = 'transform .3s cubic-bezier(.25,.9,.3,1)';
       tr.style.transform = 'translateX(0)';
+      clearCardStyles(tr, true);
     }
   }, {passive:true});
 }
