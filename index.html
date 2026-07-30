@@ -1354,15 +1354,36 @@ function goToToday(){
   renderAll();
 }
 let sliding = false;
-function shiftDate(delta){
-  if(sliding) return;
+// skipAnim = the caller already animated the movement (swipe), so we must NOT
+// run the entry animation again — that caused a double slide.
+function shiftDate(delta, skipAnim){
+  if(sliding && !skipAnim) return;
   viewDate = addDays(viewDate, delta);
   haptic(8);
   renderAll();
-  animateTracks(delta);
+  if(skipAnim) resetTracks();
+  else animateTracks(delta);
+}
+// Snap tracks back to their resting position with no transition at all.
+function resetTracks(){
+  ['routineTrack','tasksTrack'].forEach(id=>{
+    const el = document.getElementById(id);
+    if(!el) return;
+    el.style.transition = 'none';
+    el.style.transform = 'translateX(0)';
+    el.querySelectorAll('.daycard').forEach(c=>{
+      c.style.transition = 'none';
+      c.style.transform = ''; c.style.filter = ''; c.style.opacity = '';
+    });
+    void el.offsetWidth; // flush, so later transitions animate normally
+    el.querySelectorAll('.daycard').forEach(c=>{ c.style.transition = ''; });
+  });
 }
 // Slide + zoom: track glides over, new main card scales up from side size,
 // so the side card visually zooms into the center.
+// Used by the ‹ › buttons: the content is already swapped, so we start the
+// new centre card where the side card was and glide it into place — one
+// continuous motion, exactly like finishing a swipe.
 function animateTracks(delta){
   let any = false;
   ['routineTrack','tasksTrack'].forEach(id=>{
@@ -1371,25 +1392,30 @@ function animateTracks(delta){
     any = true; sliding = true;
     const main = el.querySelector('.daycard.main');
     const dist = Math.round(el.clientWidth * 0.8) + 10; // one card + gap
+    const DUR = 300, ease = 'cubic-bezier(.22,.61,.36,1)';
     el.style.transition = 'none';
     el.style.transform = `translateX(${delta>0 ? dist : -dist}px)`;
     if(main){
       main.style.transition = 'none';
       main.style.transform = 'scale(.85)';
-      main.style.opacity = '.7';
+      main.style.opacity = '.72';
       main.style.filter = 'blur(1.6px)';
     }
     requestAnimationFrame(()=>{ requestAnimationFrame(()=>{
-      el.style.transition = 'transform .42s cubic-bezier(.25,.9,.3,1)';
+      el.style.transition = `transform ${DUR}ms ${ease}`;
       el.style.transform = 'translateX(0)';
       if(main){
-        main.style.transition = 'transform .42s cubic-bezier(.25,.9,.3,1), opacity .42s, filter .42s';
+        main.style.transition = `transform ${DUR}ms ${ease}, opacity ${DUR}ms ${ease}, filter ${DUR}ms ${ease}`;
         main.style.transform = 'scale(1)';
         main.style.opacity = '1';
-        main.style.filter = 'blur(0)';
+        main.style.filter = 'blur(0px)';
       }
     });});
-    setTimeout(()=>{ el.style.transition='none'; sliding = false; }, 450);
+    setTimeout(()=>{
+      el.style.transition = 'none';
+      if(main){ main.style.transition=''; main.style.transform=''; main.style.filter=''; main.style.opacity=''; }
+      sliding = false;
+    }, DUR + 20);
   });
   if(!any) sliding = false;
 }
@@ -2398,21 +2424,33 @@ function attachCarouselSwipe(carousel){
       const dir = dx < 0 ? 1 : -1; // dragged left → next day
       sliding = true;
       haptic(15);
+      // Finish the SAME gesture: glide exactly one card across while the
+      // incoming card finishes growing/un-blurring. Then swap the data in
+      // place with no second animation.
       const step = w*0.8 + 10; // one card + gap
-      tr.style.transition = 'transform .2s ease-out';
+      const DUR = 260;
+      const ease = `cubic-bezier(.22,.61,.36,1)`;
+      tr.style.transition = `transform ${DUR}ms ${ease}`;
       tr.style.transform = `translateX(${dir>0 ? -step : step}px)`;
       const c = cardsOf(tr);
       const incoming = dir>0 ? c.next : c.prev;
+      const outgoingMain = c.main;
       if(incoming){
-        incoming.style.transition = 'transform .18s, filter .18s, opacity .18s';
+        incoming.style.transition = `transform ${DUR}ms ${ease}, filter ${DUR}ms ${ease}, opacity ${DUR}ms ${ease}`;
         incoming.style.transform = 'scale(1)';
-        incoming.style.filter = 'blur(0)';
+        incoming.style.filter = 'blur(0px)';
         incoming.style.opacity = '1';
+      }
+      if(outgoingMain){
+        outgoingMain.style.transition = `transform ${DUR}ms ${ease}, filter ${DUR}ms ${ease}, opacity ${DUR}ms ${ease}`;
+        outgoingMain.style.transform = 'scale(.85)';
+        outgoingMain.style.filter = 'blur(1.6px)';
+        outgoingMain.style.opacity = '.72';
       }
       setTimeout(()=>{
         sliding = false;
-        shiftDate(dir);
-      }, 170);
+        shiftDate(dir, true); // already animated — don't animate again
+      }, DUR);
     } else {
       tr.style.transition = 'transform .3s cubic-bezier(.25,.9,.3,1)';
       tr.style.transform = 'translateX(0)';
